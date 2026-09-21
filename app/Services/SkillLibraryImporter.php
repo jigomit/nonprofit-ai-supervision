@@ -193,7 +193,7 @@ class SkillLibraryImporter
     {
         preg_match_all('/\buse (nonprofit-[a-z0-9-]+)/i', $description, $matches);
 
-        return collect($matches[1] ?? [])
+        return collect($matches[1])
             ->map(fn (string $slug) => strtolower(rtrim($slug, '-')))
             ->reject(fn (string $slug) => $slug === $selfSlug)
             ->unique()

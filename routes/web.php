@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SkillController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,9 @@ Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+        Route::get('skills', [SkillController::class, 'index'])->name('skills.index');
+        Route::get('skills/{skill}', [SkillController::class, 'show'])->name('skills.show');
     });
 
 Route::middleware(['auth'])->group(function () {

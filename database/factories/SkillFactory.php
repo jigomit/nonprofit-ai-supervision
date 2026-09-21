@@ -18,7 +18,11 @@ class SkillFactory extends Factory
      */
     public function definition(): array
     {
-        $body = fake()->paragraphs(6, true);
+        // paragraphs() is typed as array|string whichever way it is called, so
+        // build the body from paragraph(), which is unambiguously a string.
+        $body = collect(range(1, 6))
+            ->map(fn () => fake()->paragraph())
+            ->implode("\n\n");
 
         return [
             'slug' => 'nonprofit-'.fake()->unique()->slug(2),
