@@ -1,0 +1,62 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Enums\SupervisionLevel;
+use App\Models\Skill;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Skill>
+ */
+class SkillFactory extends Factory
+{
+    protected $model = Skill::class;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        $body = fake()->paragraphs(6, true);
+
+        return [
+            'slug' => 'nonprofit-'.fake()->unique()->slug(2),
+            'name' => fake()->sentence(3),
+            'description' => fake()->sentence(12),
+            'category' => fake()->randomElement(config('skills.core_categories')),
+            'is_core' => true,
+            'supervision' => SupervisionLevel::Review->value,
+            'supervision_note' => fake()->sentence(10),
+            'body' => $body,
+            'body_hash' => hash('sha256', $body),
+            'token_estimate' => (int) ceil(strlen($body) / 3.5),
+            'source_commit' => str_repeat('a', 40),
+            'date_added' => now()->subMonth()->toDateString(),
+            'last_reviewed' => null,
+            'license' => 'MIT',
+        ];
+    }
+
+    public function unsupervised(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'supervision' => SupervisionLevel::Unsupervised->value,
+        ]);
+    }
+
+    public function expertRequired(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'supervision' => SupervisionLevel::ExpertRequired->value,
+        ]);
+    }
+
+    public function specialCollection(string $category = 'faith-based'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'category' => $category,
+            'is_core' => false,
+        ]);
+    }
+}
