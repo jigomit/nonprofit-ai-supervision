@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BoardReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpertInvitationController;
 use App\Http\Controllers\OrganizationProfileController;
@@ -35,6 +36,10 @@ Route::prefix('{current_team}')
         Route::patch('calendar/{schedule}', [TaskScheduleController::class, 'update'])->name('schedules.update');
         Route::delete('calendar/{schedule}', [TaskScheduleController::class, 'destroy'])->name('schedules.destroy');
         Route::post('calendar/{schedule}/run', [TaskScheduleController::class, 'run'])->name('schedules.run');
+
+        Route::get('report', [BoardReportController::class, 'index'])->name('report.index');
+        Route::get('report/export', [BoardReportController::class, 'export'])->name('report.export');
+        Route::post('report/changes/{change}', [BoardReportController::class, 'acknowledge'])->name('report.acknowledge');
     });
 
 Route::middleware(['auth'])->group(function () {

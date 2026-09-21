@@ -33,6 +33,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $last_reviewed
  * @property string|null $license
  * @property-read Collection<int, Skill> $relatedSkills
+ * @property-read Collection<int, Team> $teams
  * @property-read Collection<int, SupervisionChange> $supervisionChanges
  */
 #[Fillable([
@@ -53,6 +54,19 @@ class Skill extends Model
     public function relatedSkills(): BelongsToMany
     {
         return $this->belongsToMany(self::class, 'skill_links', 'from_skill_id', 'to_skill_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Organizations whose catalogue this task is in.
+     *
+     * @return BelongsToMany<Team, $this, TeamSkill, 'pivot'>
+     */
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'team_skill')
+            ->using(TeamSkill::class)
+            ->withPivot(['enabled', 'supervision_override'])
             ->withTimestamps();
     }
 

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Records that an import moved a skill between supervision levels.
@@ -21,10 +21,9 @@ use Illuminate\Support\Carbon;
  * @property SupervisionLevel $from_level
  * @property SupervisionLevel $to_level
  * @property string|null $source_commit
- * @property Carbon|null $acknowledged_at
  * @property-read Skill $skill
  */
-#[Fillable(['skill_id', 'from_level', 'to_level', 'source_commit', 'acknowledged_at'])]
+#[Fillable(['skill_id', 'from_level', 'to_level', 'source_commit'])]
 class SupervisionChange extends Model
 {
     /**
@@ -36,12 +35,28 @@ class SupervisionChange extends Model
     }
 
     /**
+     * @return HasMany<SupervisionChangeAcknowledgement, $this>
+     */
+    public function acknowledgements(): HasMany
+    {
+        return $this->hasMany(SupervisionChangeAcknowledgement::class);
+    }
+
+    /**
+     * Changes this organization has not yet been told about, limited to skills
+     * it actually has enabled — a level moving on work it never runs is not
+     * news to it.
+     *
      * @param  Builder<SupervisionChange>  $query
      * @return Builder<SupervisionChange>
      */
-    public function scopeUnacknowledged(Builder $query): Builder
+    public function scopeUnacknowledgedBy(Builder $query, int $teamId): Builder
     {
-        return $query->whereNull('acknowledged_at');
+        return $query
+            ->whereHas('skill.teams', fn ($q) => $q
+                ->where('teams.id', $teamId)
+                ->where('team_skill.enabled', true))
+            ->whereDoesntHave('acknowledgements', fn ($q) => $q->where('team_id', $teamId));
     }
 
     /** Whether this change tightened the gate rather than loosening it. */
@@ -58,7 +73,6 @@ class SupervisionChange extends Model
         return [
             'from_level' => SupervisionLevel::class,
             'to_level' => SupervisionLevel::class,
-            'acknowledged_at' => 'datetime',
         ];
     }
 }

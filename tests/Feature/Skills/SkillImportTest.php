@@ -100,8 +100,7 @@ it('records a supervision change when a level moves upstream', function () {
     expect($change->from_level)->toBe(SupervisionLevel::Review)
         ->and($change->to_level)->toBe(SupervisionLevel::ExpertRequired)
         ->and($change->isEscalation())->toBeTrue()
-        ->and($change->acknowledged_at)->toBeNull()
-        ->and(SupervisionChange::unacknowledged()->count())->toBe(1);
+        ->and($change->acknowledgements()->count())->toBe(0);
 });
 
 it('records a loosened level as a non-escalation', function () {
