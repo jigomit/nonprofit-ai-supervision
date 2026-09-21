@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\SupervisionLevel;
 use App\Models\Skill;
+use App\Models\Team;
+use App\Models\TeamSkill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -74,7 +76,18 @@ class SkillController extends Controller
     {
         $skill->load('relatedSkills');
 
+        // Whether this organization can actually run it, which decides between
+        // showing the run control and explaining why it is absent.
+        $team = Team::query()->where('slug', $currentTeam)->firstOrFail();
+
+        $enabled = TeamSkill::query()
+            ->where('team_id', $team->id)
+            ->where('skill_id', $skill->id)
+            ->where('enabled', true)
+            ->exists();
+
         return Inertia::render('skills/Show', [
+            'enabled' => $enabled,
             'skill' => [
                 ...$this->summarise($skill),
                 'body' => Str::markdown($skill->body),

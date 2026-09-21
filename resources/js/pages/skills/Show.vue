@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowLeft, Play } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
+import InputError from '@/components/InputError.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
 import type { Team } from '@/types';
 
@@ -31,10 +34,13 @@ type Props = {
             supervisionLabel: string;
         }[];
     };
+    enabled: boolean;
     currentTeam?: Team | null;
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const run = useForm({ skill: props.skill.slug, notes: '' });
 
 defineOptions({
     layout: (props: { currentTeam?: Team | null }) => ({
@@ -85,6 +91,43 @@ defineOptions({
                 {{ skill.supervisionNote }}
             </p>
         </section>
+
+        <!-- The run control sits under the gate, so it is never possible to
+             start work without having seen what will be required to release it. -->
+        <section
+            v-if="enabled"
+            class="flex flex-col gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+        >
+            <h2 class="text-sm font-semibold">Run this task</h2>
+            <form
+                class="flex flex-col gap-3"
+                @submit.prevent="run.post(`../tasks`, { preserveScroll: true })"
+            >
+                <div class="grid gap-2">
+                    <Label for="notes">What do you need?</Label>
+                    <textarea
+                        id="notes"
+                        v-model="run.notes"
+                        rows="3"
+                        placeholder="Anything specific this should take into account."
+                        class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                    />
+                    <InputError :message="run.errors.notes" />
+                    <InputError :message="run.errors.skill" />
+                </div>
+                <div>
+                    <Button type="submit" :disabled="run.processing">
+                        <Play class="size-4" />
+                        {{ run.processing ? 'Starting…' : 'Run task' }}
+                    </Button>
+                </div>
+            </form>
+        </section>
+
+        <p v-else class="text-sm text-muted-foreground">
+            This task is not in your organization's catalogue. Add its
+            collection on the Organization page to run it.
+        </p>
 
         <dl class="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>

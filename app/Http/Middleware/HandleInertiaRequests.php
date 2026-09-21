@@ -44,6 +44,11 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Pages reached without an account (an invited expert clearing one
+            // gate) have no other way to confirm their action landed.
+            'flash' => [
+                'status' => fn () => $request->session()->get('status'),
+            ],
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
         ];
