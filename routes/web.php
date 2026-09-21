@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OrganizationProfileController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -12,6 +13,9 @@ Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+        Route::get('organization', [OrganizationProfileController::class, 'edit'])->name('organization.edit');
+        Route::put('organization', [OrganizationProfileController::class, 'update'])->name('organization.update');
 
         Route::get('skills', [SkillController::class, 'index'])->name('skills.index');
         Route::get('skills/{skill}', [SkillController::class, 'show'])->name('skills.show');

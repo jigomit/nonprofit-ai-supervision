@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -25,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, TeamInvitation> $invitations
  * @property-read Collection<int, Membership> $memberships
  * @property-read Collection<int, User> $members
+ * @property-read OrganizationProfile|null $organizationProfile
+ * @property-read Collection<int, Skill> $skills
  */
 #[Fillable(['name', 'slug', 'is_personal'])]
 class Team extends Model
@@ -93,6 +96,39 @@ class Team extends Model
     public function invitations(): HasMany
     {
         return $this->hasMany(TeamInvitation::class);
+    }
+
+    /**
+     * The nonprofit-specific facts about this team.
+     *
+     * @return HasOne<OrganizationProfile, $this>
+     */
+    public function organizationProfile(): HasOne
+    {
+        return $this->hasOne(OrganizationProfile::class);
+    }
+
+    /**
+     * Every skill in this team's catalogue, enabled or not.
+     *
+     * @return BelongsToMany<Skill, $this, TeamSkill, 'pivot'>
+     */
+    public function skills(): BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class, 'team_skill')
+            ->using(TeamSkill::class)
+            ->withPivot(['enabled', 'supervision_override'])
+            ->withTimestamps();
+    }
+
+    /**
+     * The skills this team has actually turned on.
+     *
+     * @return BelongsToMany<Skill, $this, TeamSkill, 'pivot'>
+     */
+    public function enabledSkills(): BelongsToMany
+    {
+        return $this->skills()->wherePivot('enabled', true);
     }
 
     /**
