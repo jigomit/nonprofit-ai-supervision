@@ -6,6 +6,7 @@ use App\Http\Controllers\OrganizationProfileController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\TaskDecisionController;
 use App\Http\Controllers\TaskRunController;
+use App\Http\Controllers\TaskScheduleController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,12 @@ Route::prefix('{current_team}')
         Route::get('tasks/{taskRun}', [TaskRunController::class, 'show'])->name('tasks.show');
         Route::post('tasks/{taskRun}/decision', [TaskDecisionController::class, 'store'])->name('tasks.decision');
         Route::post('tasks/{taskRun}/expert-invitation', [ExpertInvitationController::class, 'store'])->name('tasks.invite-expert');
+
+        Route::get('calendar', [TaskScheduleController::class, 'index'])->name('schedules.index');
+        Route::post('calendar', [TaskScheduleController::class, 'store'])->name('schedules.store');
+        Route::patch('calendar/{schedule}', [TaskScheduleController::class, 'update'])->name('schedules.update');
+        Route::delete('calendar/{schedule}', [TaskScheduleController::class, 'destroy'])->name('schedules.destroy');
+        Route::post('calendar/{schedule}/run', [TaskScheduleController::class, 'run'])->name('schedules.run');
     });
 
 Route::middleware(['auth'])->group(function () {

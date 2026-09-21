@@ -7,6 +7,7 @@ import {
     LayoutGrid,
     ListChecks,
     Inbox,
+    CalendarClock,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -26,6 +27,7 @@ import {
 import { dashboard } from '@/routes';
 import { edit as organizationEdit } from '@/routes/organization';
 import { index as skillsIndex } from '@/routes/skills';
+import { index as schedulesIndex } from '@/routes/schedules';
 import { index as tasksIndex } from '@/routes/tasks';
 import type { NavItem } from '@/types';
 
@@ -54,6 +56,11 @@ const mainNavItems = computed<NavItem[]>(() => {
                 title: 'Work',
                 href: tasksIndex(teamSlug.value).url,
                 icon: Inbox,
+            },
+            {
+                title: 'Calendar',
+                href: schedulesIndex(teamSlug.value).url,
+                icon: CalendarClock,
             },
             {
                 title: 'Skill catalogue',

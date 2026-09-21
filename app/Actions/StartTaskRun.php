@@ -8,6 +8,7 @@ use App\Exceptions\GateViolation;
 use App\Jobs\RunTaskJob;
 use App\Models\Skill;
 use App\Models\TaskRun;
+use App\Models\TaskSchedule;
 use App\Models\Team;
 use App\Models\TeamSkill;
 use App\Models\User;
@@ -28,14 +29,20 @@ class StartTaskRun
      *
      * @throws GateViolation when the task is not in the organization's catalogue
      */
-    public function handle(Team $team, Skill $skill, User $user, array $inputs = []): TaskRun
-    {
+    public function handle(
+        Team $team,
+        Skill $skill,
+        User $user,
+        array $inputs = [],
+        ?TaskSchedule $schedule = null,
+    ): TaskRun {
         $pivot = $this->catalogueEntry($team, $skill);
         $profile = $team->organizationProfile;
 
         $run = TaskRun::create([
             'team_id' => $team->id,
             'skill_id' => $skill->id,
+            'task_schedule_id' => $schedule?->id,
             'requested_by' => $user->id,
             'status' => TaskRunStatus::Queued,
             'supervision_at_run' => $pivot->effectiveSupervision($skill->supervision),
@@ -48,6 +55,11 @@ class StartTaskRun
             'skill_body_hash' => $skill->body_hash,
             'skill_source_commit' => $skill->source_commit,
         ]);
+
+        // Starting the work is what satisfies the occurrence, not finishing
+        // it: the schedule tracks whether someone got to it, and the gate
+        // tracks whether the output was any good.
+        $schedule?->advance();
 
         RunTaskJob::dispatch($run);
 
