@@ -45,7 +45,7 @@ want PDFs to be readable when attached — without it a PDF uploads and is marke
 unreadable rather than silently contributing nothing.
 
 ```bash
-git clone <this repo> signoff && cd signoff
+git clone git@github.com:jigomit/nonprofit-ai-supervision.git signoff && cd signoff
 
 # .env and the app key must exist before the front end is built: the Vite
 # plugin generates typed routes by calling artisan.
@@ -108,7 +108,7 @@ php artisan test
 
 ## Built with
 
-Laravel 13, Inertia 3, Vue 3, Tailwind 4, Pest 4. Anthropic goes through the official PHP SDK, so skill instructions can be sent as a cached system block and repeated runs of the same task reuse them; every other provider speaks OpenAI's chat-completions shape and shares one driver, which makes adding another an entry in `config/ai.php`.
+Laravel 13, Inertia 3, Vue 3, Tailwind 4, Pest 5. Anthropic goes through the official PHP SDK, so skill instructions can be sent as a cached system block and repeated runs of the same task reuse them; every other provider speaks OpenAI's chat-completions shape and shares one driver, which makes adding another an entry in `config/ai.php`.
 
 ## Licence
 
