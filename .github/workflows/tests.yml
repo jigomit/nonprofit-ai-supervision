@@ -59,5 +59,13 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: ''
 
+      # `npm install` fetches the playwright package, not the browser it
+      # drives. Without this the six browser test files — the ones that prove
+      # the interface does not offer a way around the gate — all fail on a
+      # missing executable, which looks like 30 broken tests rather than one
+      # missing install step.
+      - name: Install Chromium for the browser tests
+        run: npx playwright install --with-deps chromium
+
       - name: Run CI Checks
         run: composer ci:check
