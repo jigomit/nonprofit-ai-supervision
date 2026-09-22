@@ -169,3 +169,33 @@ it('tells a used expert link it is finished', function () {
         ->assertDontSee('Approve and release')
         ->assertNoJavascriptErrors();
 });
+
+it('only offers the document once it has been signed off', function () {
+    $skill = runnableSkill($this->team, SupervisionLevel::Review);
+
+    $page = visit('/'.$this->team->slug.'/skills/'.$skill->slug)
+        ->click('Run task')
+        ->assertSee('Available to copy once it has been signed off')
+        ->assertDontSee('Download');
+
+    $page->click('Approve and release')
+        ->assertSee('The document')
+        ->assertSee('Download')
+        ->assertNoJavascriptErrors();
+});
+
+it('lets rejected work be sent round again', function () {
+    $skill = runnableSkill($this->team, SupervisionLevel::Review);
+
+    visit('/'.$this->team->slug.'/skills/'.$skill->slug)
+        ->click('Run task')
+        ->type('#decision_notes', 'The ask amount is wrong.')
+        ->click('Reject')
+        ->assertSee('Try again')
+        ->type('#revision_notes', 'Ask for $25,000 instead.')
+        ->click('Start a revised run')
+        ->assertSee('This is a second attempt')
+        ->assertNoJavascriptErrors();
+
+    expect(TaskRun::query()->latest('id')->first()->revised_from_id)->not->toBeNull();
+});

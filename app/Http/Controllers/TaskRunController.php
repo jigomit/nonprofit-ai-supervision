@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TaskRunController extends Controller
 {
@@ -79,6 +80,12 @@ class TaskRunController extends Controller
             'run' => [
                 ...$this->summarise($taskRun),
                 'output' => $taskRun->output !== null ? Str::markdown($taskRun->output) : null,
+                // The draft as written, for copying. Only once released — a
+                // download button on unreviewed work would be the bypass.
+                'rawOutput' => $taskRun->isExportable() ? $taskRun->output : null,
+                'isExportable' => $taskRun->isExportable(),
+                'canRevise' => $taskRun->status === TaskRunStatus::Rejected,
+                'revisedFrom' => $taskRun->revised_from_id,
                 'failureReason' => $taskRun->failure_reason,
                 'inputs' => $taskRun->inputs,
                 'supervisionNote' => $taskRun->skill->supervision_note,
@@ -105,6 +112,60 @@ class TaskRunController extends Controller
             ],
             'credentialTypes' => CredentialType::options(),
         ]);
+    }
+
+    /**
+     * The finished document, as a file.
+     *
+     * Gated on release rather than on being signed in: work that has not
+     * cleared its gate is readable for review and nothing more.
+     */
+    public function download(Request $request, string $currentTeam, TaskRun $taskRun): StreamedResponse
+    {
+        $team = $this->resolveTeam($request);
+        abort_unless($taskRun->team_id === $team->id, 404);
+        abort_unless($taskRun->isExportable(), 403);
+
+        $filename = Str::slug($taskRun->skill->name).'-'.$taskRun->id.'.md';
+        $body = $taskRun->output ?? '';
+
+        return response()->streamDownload(
+            fn () => print ($body),
+            $filename,
+            ['Content-Type' => 'text/markdown; charset=UTF-8'],
+        );
+    }
+
+    /**
+     * Start a fresh attempt at work that was sent back.
+     *
+     * The rejected run is never edited — it stays as it was decided, and the
+     * new one points back at it, so the record shows the work was returned and
+     * redone rather than quietly rewritten.
+     */
+    public function revise(Request $request, string $currentTeam, TaskRun $taskRun, StartTaskRun $start): RedirectResponse
+    {
+        $team = $this->resolveTeam($request);
+        abort_unless($taskRun->team_id === $team->id, 404);
+        abort_unless($taskRun->status === TaskRunStatus::Rejected, 422);
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:4000'],
+        ]);
+
+        try {
+            $run = $start->handle(
+                team: $team,
+                skill: $taskRun->skill,
+                user: $request->user(),
+                inputs: ['notes' => $validated['notes'] ?? ($taskRun->inputs['notes'] ?? '')],
+                revisionOf: $taskRun,
+            );
+        } catch (GateViolation $e) {
+            return back()->withErrors(['notes' => $e->getMessage()]);
+        }
+
+        return to_route('tasks.show', ['current_team' => $team->slug, 'taskRun' => $run->id]);
     }
 
     /**

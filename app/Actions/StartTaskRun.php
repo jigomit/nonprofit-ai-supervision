@@ -35,6 +35,7 @@ class StartTaskRun
         User $user,
         array $inputs = [],
         ?TaskSchedule $schedule = null,
+        ?TaskRun $revisionOf = null,
     ): TaskRun {
         $pivot = $this->catalogueEntry($team, $skill);
         $profile = $team->organizationProfile;
@@ -43,6 +44,7 @@ class StartTaskRun
             'team_id' => $team->id,
             'skill_id' => $skill->id,
             'task_schedule_id' => $schedule?->id,
+            'revised_from_id' => $revisionOf?->id,
             'requested_by' => $user->id,
             'status' => TaskRunStatus::Queued,
             'supervision_at_run' => $pivot->effectiveSupervision($skill->supervision),

@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property int $team_id
  * @property int $skill_id
  * @property int|null $task_schedule_id
+ * @property int|null $revised_from_id
  * @property int $requested_by
  * @property TaskRunStatus $status
  * @property SupervisionLevel $supervision_at_run
@@ -49,7 +50,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, ExpertInvitation> $expertInvitations
  */
 #[Fillable([
-    'team_id', 'skill_id', 'task_schedule_id', 'requested_by', 'status', 'supervision_at_run',
+    'team_id', 'skill_id', 'task_schedule_id', 'revised_from_id', 'requested_by', 'status', 'supervision_at_run',
     'expert_gate_policy_at_run', 'inputs', 'output', 'failure_reason', 'model',
     'usage', 'skill_body_hash', 'skill_source_commit', 'started_at',
     'completed_at', 'released_at', 'released_without_expert',
@@ -81,6 +82,36 @@ class TaskRun extends Model
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /**
+     * The run this one was started to replace, if any.
+     *
+     * @return BelongsTo<TaskRun, $this>
+     */
+    public function revisedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'revised_from_id');
+    }
+
+    /**
+     * @return HasMany<TaskRun, $this>
+     */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(self::class, 'revised_from_id');
+    }
+
+    /**
+     * Whether the output may be taken out of the application.
+     *
+     * Only released work. A draft is readable so it can be reviewed, but
+     * handing someone a download button before the gate has cleared would
+     * build the bypass this whole application exists to close.
+     */
+    public function isExportable(): bool
+    {
+        return $this->status->isReleased() && $this->output !== null;
     }
 
     /**

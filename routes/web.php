@@ -28,6 +28,8 @@ Route::prefix('{current_team}')
         Route::get('tasks', [TaskRunController::class, 'index'])->name('tasks.index');
         Route::post('tasks', [TaskRunController::class, 'store'])->name('tasks.store');
         Route::get('tasks/{taskRun}', [TaskRunController::class, 'show'])->name('tasks.show');
+        Route::get('tasks/{taskRun}/download', [TaskRunController::class, 'download'])->name('tasks.download');
+        Route::post('tasks/{taskRun}/revise', [TaskRunController::class, 'revise'])->name('tasks.revise');
         Route::post('tasks/{taskRun}/decision', [TaskDecisionController::class, 'store'])->name('tasks.decision');
         Route::post('tasks/{taskRun}/expert-invitation', [ExpertInvitationController::class, 'store'])->name('tasks.invite-expert');
 

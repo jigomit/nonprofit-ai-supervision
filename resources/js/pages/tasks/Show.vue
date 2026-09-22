@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Check, Copy, ShieldAlert, X } from '@lucide/vue';
-import { ref } from 'vue';
+import {
+    ArrowLeft,
+    Check,
+    Copy,
+    Download,
+    RotateCcw,
+    ShieldAlert,
+    X,
+} from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
@@ -12,8 +20,11 @@ import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
 import {
     decision as taskDecision,
+    download as taskDownload,
     index as tasksIndex,
     inviteExpert as taskInviteExpert,
+    revise as taskRevise,
+    show as taskShow,
 } from '@/routes/tasks';
 import type { Team } from '@/types';
 
@@ -31,6 +42,10 @@ type Props = {
         releasedWithoutExpert: boolean;
         allowsOverride: boolean;
         output: string | null;
+        rawOutput: string | null;
+        isExportable: boolean;
+        canRevise: boolean;
+        revisedFrom: number | null;
         failureReason: string | null;
         inputs: Record<string, string> | null;
         usage: Record<string, number> | null;
@@ -58,8 +73,11 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const awaitingReview = props.run.status === 'awaiting_review';
-const awaitingExpert = props.run.status === 'awaiting_expert';
+// Inertia reuses this component when moving between runs, so anything derived
+// from props has to be computed. Plain consts here silently kept pointing at
+// the run you came from.
+const awaitingReview = computed(() => props.run.status === 'awaiting_review');
+const awaitingExpert = computed(() => props.run.status === 'awaiting_expert');
 
 const decision = useForm({
     decision: 'approved',
@@ -74,16 +92,50 @@ const showOverride = ref(false);
 const copied = ref<string | null>(null);
 
 const workUrl = tasksIndex(props.currentTeam?.slug ?? '').url;
-const routeArgs = {
+const routeArgs = computed(() => ({
     current_team: props.currentTeam?.slug ?? '',
     taskRun: props.run.id,
+}));
+
+const decisionUrl = computed(() => taskDecision(routeArgs.value).url);
+const inviteUrl = computed(() => taskInviteExpert(routeArgs.value).url);
+const downloadUrl = computed(() => taskDownload(routeArgs.value).url);
+const reviseUrl = computed(() => taskRevise(routeArgs.value).url);
+
+const originalUrl = computed(() =>
+    props.run.revisedFrom
+        ? taskShow({
+              current_team: props.currentTeam?.slug ?? '',
+              taskRun: props.run.revisedFrom,
+          }).url
+        : null,
+);
+
+const revision = useForm({ notes: (props.run.inputs?.notes as string) ?? '' });
+
+watch(
+    () => props.run.id,
+    () => {
+        revision.notes = (props.run.inputs?.notes as string) ?? '';
+    },
+);
+const copiedDraft = ref(false);
+
+const copyDraft = async () => {
+    if (!props.run.rawOutput) return;
+
+    try {
+        await navigator.clipboard.writeText(props.run.rawOutput);
+        copiedDraft.value = true;
+        setTimeout(() => (copiedDraft.value = false), 2000);
+    } catch {
+        copiedDraft.value = false;
+    }
 };
-const decisionUrl = taskDecision(routeArgs).url;
-const inviteUrl = taskInviteExpert(routeArgs).url;
 
 const submitDecision = (value: string) => {
     decision.decision = value;
-    decision.post(decisionUrl, { preserveScroll: true });
+    decision.post(decisionUrl.value, { preserveScroll: true });
 };
 
 const copyLink = async (url: string) => {
@@ -169,7 +221,34 @@ defineOptions({
         </div>
 
         <section v-if="run.output" class="flex flex-col gap-2">
-            <h2 class="text-sm font-semibold">Draft</h2>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-sm font-semibold">
+                    {{ run.isExportable ? 'The document' : 'Draft' }}
+                </h2>
+                <!-- Taking the work away is only offered once it has cleared
+                     its gate. Before that it is readable so it can be
+                     reviewed, and nothing more. -->
+                <div v-if="run.isExportable" class="flex items-center gap-3">
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 text-xs underline-offset-4 hover:underline"
+                        @click="copyDraft"
+                    >
+                        <Copy class="size-3.5" />
+                        {{ copiedDraft ? 'Copied' : 'Copy' }}
+                    </button>
+                    <a
+                        :href="downloadUrl"
+                        class="inline-flex items-center gap-1.5 text-xs underline-offset-4 hover:underline"
+                    >
+                        <Download class="size-3.5" />
+                        Download
+                    </a>
+                </div>
+                <span v-else class="text-xs text-muted-foreground">
+                    Available to copy once it has been signed off.
+                </span>
+            </div>
             <!-- eslint-disable-next-line vue/no-v-html -->
             <article
                 class="prose prose-sm max-w-none rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border dark:prose-invert"
@@ -216,6 +295,22 @@ defineOptions({
                         placeholder="OH-12345"
                     />
                 </div>
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="decision_notes">
+                    Notes for whoever asked
+                    <span class="text-muted-foreground"
+                        >— required if you send it back</span
+                    >
+                </Label>
+                <textarea
+                    id="decision_notes"
+                    v-model="decision.justification"
+                    rows="2"
+                    placeholder="What needs to change, or why this is fine as it stands."
+                    class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                />
             </div>
 
             <InputError :message="decision.errors.decision" />
@@ -346,6 +441,49 @@ defineOptions({
                 </button>
             </div>
         </section>
+
+        <!-- Sending work back is not a dead end. The rejected run stays as it
+             was decided; a second attempt is a new run pointing at it. -->
+        <section
+            v-if="run.canRevise"
+            class="flex flex-col gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+        >
+            <h2 class="text-sm font-semibold">Try again</h2>
+            <p class="text-sm text-muted-foreground">
+                This run stays on the record as it was decided. A second attempt
+                starts fresh and points back at it.
+            </p>
+            <form
+                class="flex flex-col gap-3"
+                @submit.prevent="
+                    revision.post(reviseUrl, { preserveScroll: true })
+                "
+            >
+                <div class="grid gap-2">
+                    <Label for="revision_notes">What should change?</Label>
+                    <textarea
+                        id="revision_notes"
+                        v-model="revision.notes"
+                        rows="3"
+                        class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                    />
+                    <InputError :message="revision.errors.notes" />
+                </div>
+                <div>
+                    <Button type="submit" :disabled="revision.processing">
+                        <RotateCcw class="size-4" />
+                        Start a revised run
+                    </Button>
+                </div>
+            </form>
+        </section>
+
+        <p v-if="originalUrl" class="text-sm text-muted-foreground">
+            This is a second attempt.
+            <Link :href="originalUrl" class="underline underline-offset-4"
+                >See the run it replaces</Link
+            >.
+        </p>
 
         <!-- The record -->
         <section v-if="run.approvals.length > 0" class="flex flex-col gap-2">
