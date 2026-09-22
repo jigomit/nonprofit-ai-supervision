@@ -6,10 +6,10 @@ Most nonprofits already use AI. Very few can say what it produced, who checked i
 
 This does. Every task carries a supervision level, and that level is a gate the work cannot get past:
 
-| Level | What happens to the output |
-|---|---|
-| `unsupervised` | Released as it is produced. A mistake costs time, not much else. |
-| `review` | Blocked until a named staff member signs it off. |
+| Level             | What happens to the output                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| `unsupervised`    | Released as it is produced. A mistake costs time, not much else.                         |
+| `review`          | Blocked until a named staff member signs it off.                                         |
 | `expert-required` | Blocked until a credentialed CPA or attorney signs it off, with the credential recorded. |
 
 The result is a record an organization can hand to its board or a funder: what AI touched, who cleared it, and what standing they claimed.
@@ -24,7 +24,7 @@ This application does not copy that library. It reads a checkout of it at instal
 
 ## What makes this different from a policy generator
 
-- **The level belongs to the task, not the tenant.** An organization can decide a task needs *more* review than the library says. It cannot decide it needs less — the model refuses.
+- **The level belongs to the task, not the tenant.** An organization can decide a task needs _more_ review than the library says. It cannot decide it needs less — the model refuses.
 - **The rules are snapshotted when work starts.** Loosening your policy later does not retroactively unlock work that was blocked when it ran.
 - **Outside professionals need no account.** The organization invites the accountant or attorney it already works with, by single-use expiring link. There is no marketplace and no credential verification — the professional relationship exists outside this software.
 - **Overrides are recorded, not hidden.** Where policy allows it, an owner can release expert-required work without a sign-off — but only with a written reason, and the release stays flagged on the run, the work list, and the board report.
@@ -67,7 +67,7 @@ php artisan queue:work
 php artisan test
 ```
 
-243 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
+253 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
 
 ## Built with
 
@@ -77,4 +77,4 @@ Laravel 13, Inertia 3, Vue 3, Tailwind 4, Pest 4. Model access through the offic
 
 MIT — see [LICENSE](LICENSE). The skills library it reads is separately MIT-licensed and is not redistributed here.
 
-[^1]: NTEN and The Bridgespan Group, *State of Nonprofit AI* (2026, n=917); Virtuous and Fundraising.AI, *Nonprofit AI Adoption Report* (2026, n=346).
+[^1]: NTEN and The Bridgespan Group, _State of Nonprofit AI_ (2026, n=917); Virtuous and Fundraising.AI, _Nonprofit AI Adoption Report_ (2026, n=346).
