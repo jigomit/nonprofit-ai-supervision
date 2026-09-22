@@ -1,11 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/vue-starter-kit",
+    "name": "jigomit/nonprofit-ai-supervision",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Enforced supervision tiers for nonprofit AI: the model drafts the work, a human clears the gate, and the record says who.",
     "keywords": [
-        "laravel",
-        "framework"
+        "nonprofit",
+        "ai-governance",
+        "human-in-the-loop",
+        "laravel"
     ],
     "license": "MIT",
     "require": {

@@ -13,6 +13,25 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    # `composer setup` migrates, and this application runs on MySQL. The test
+    # suite itself uses SQLite in memory (phpunit.xml), so this service exists
+    # to make that migration succeed — and is worth having on its own account:
+    # these migrations have already hit a MySQL-only limit once, the 64-char
+    # identifier cap, which SQLite would never have caught.
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: signoff
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,6 +52,12 @@ jobs:
 
       - name: Setup Application
         run: composer setup
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: signoff
+          DB_USERNAME: root
+          DB_PASSWORD: ''
 
       - name: Run CI Checks
         run: composer ci:check
