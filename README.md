@@ -28,6 +28,7 @@ This application does not copy that library. It reads a checkout of it at instal
 - **The rules are snapshotted when work starts.** Loosening your policy later does not retroactively unlock work that was blocked when it ran.
 - **Outside professionals need no account.** The organization invites the accountant or attorney it already works with, by single-use expiring link. There is no marketplace and no credential verification — the professional relationship exists outside this software.
 - **Overrides are recorded, not hidden.** Where policy allows it, an owner can release expert-required work without a sign-off — but only with a written reason, and the release stays flagged on the run, the work list, and the board report.
+- **The known mistakes are shown before the work starts.** 95 of the 102 tasks document where the work usually goes wrong, and 64 say what you should end up with. Both are lifted out of the instructions and put in front of the person, above the button, rather than being read only by the model.
 - **Upstream changes surface.** When the library revises a level, every organization running that task is told rather than having its gate silently moved.
 - **Each organization brings its own model.** Anthropic, OpenAI, xAI, Mistral, Meta's Llama, or Ollama on your own machine — configured per organization, with your own key. The supervision tier is a property of the task, not of the model that drafted it, so it does not change with the provider.
 
@@ -84,7 +85,7 @@ up on a server.
 php artisan test
 ```
 
-306 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
+312 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
 
 ## Built with
 

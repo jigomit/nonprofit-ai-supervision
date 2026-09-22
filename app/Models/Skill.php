@@ -25,6 +25,8 @@ use Illuminate\Support\Carbon;
  * @property bool $is_core
  * @property SupervisionLevel $supervision
  * @property string $supervision_note
+ * @property array<int, string>|null $failure_modes
+ * @property array<int, string>|null $deliverables
  * @property string $body
  * @property string $body_hash
  * @property int $token_estimate
@@ -38,7 +40,8 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'slug', 'name', 'description', 'category', 'is_core',
-    'supervision', 'supervision_note', 'body', 'body_hash', 'token_estimate',
+    'supervision', 'supervision_note', 'failure_modes', 'deliverables',
+    'body', 'body_hash', 'token_estimate',
     'source_commit', 'date_added', 'last_reviewed', 'license',
 ])]
 class Skill extends Model
@@ -108,6 +111,8 @@ class Skill extends Model
     {
         return [
             'is_core' => 'boolean',
+            'failure_modes' => 'array',
+            'deliverables' => 'array',
             'supervision' => SupervisionLevel::class,
             'token_estimate' => 'integer',
             'date_added' => 'date',

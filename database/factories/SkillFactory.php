@@ -32,6 +32,11 @@ class SkillFactory extends Factory
             'is_core' => true,
             'supervision' => SupervisionLevel::Review->value,
             'supervision_note' => fake()->sentence(10),
+            // Most of the library carries these, so the default should too —
+            // a factory that omits them hides the pre-flight from every test
+            // that does not ask for it.
+            'failure_modes' => [fake()->sentence(12), fake()->sentence(10)],
+            'deliverables' => [fake()->sentence(8)],
             'body' => $body,
             'body_hash' => hash('sha256', $body),
             'token_estimate' => (int) ceil(strlen($body) / 3.5),
@@ -40,6 +45,15 @@ class SkillFactory extends Factory
             'last_reviewed' => null,
             'license' => 'MIT',
         ];
+    }
+
+    /** A skill from the seven that document neither. */
+    public function withoutPreflight(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'failure_modes' => [],
+            'deliverables' => [],
+        ]);
     }
 
     public function unsupervised(): static

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { ArrowLeft, Play } from '@lucide/vue';
+import { ArrowLeft, Play, TriangleAlert } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
@@ -25,6 +25,8 @@ type Props = {
         supervisionGate: string;
         supervisionNote: string;
         body: string;
+        failureModes: string[];
+        deliverables: string[];
         tokenEstimate: number;
         dateAdded: string | null;
         lastReviewed: string | null;
@@ -103,8 +105,57 @@ defineOptions({
             </p>
         </section>
 
-        <!-- The run control sits under the gate, so it is never possible to
-             start work without having seen what will be required to release it. -->
+        <!-- What the library says goes wrong with this task, before anyone
+             starts it. The whole point of the corpus is that these mistakes
+             are already known; leaving them inside the instructions means only
+             the model ever reads them. -->
+        <section
+            v-if="skill.failureModes.length"
+            class="flex flex-col gap-3 rounded-xl border border-amber-600/25 bg-amber-500/5 p-4"
+        >
+            <div class="flex items-center gap-2">
+                <TriangleAlert class="size-4 shrink-0 text-amber-600" />
+                <h2 class="text-sm font-semibold">
+                    Where this usually goes wrong
+                </h2>
+            </div>
+            <ul class="flex flex-col gap-2">
+                <li
+                    v-for="(mode, index) in skill.failureModes"
+                    :key="index"
+                    class="flex gap-2.5 text-sm text-muted-foreground"
+                >
+                    <span
+                        class="mt-2 size-1.5 shrink-0 rounded-full bg-amber-600/60"
+                    />
+                    <span class="preflight [&_p]:inline" v-html="mode" />
+                </li>
+            </ul>
+        </section>
+
+        <section
+            v-if="skill.deliverables.length"
+            class="flex flex-col gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+        >
+            <h2 class="text-sm font-semibold">What you should end up with</h2>
+            <ul class="flex flex-col gap-2">
+                <li
+                    v-for="(item, index) in skill.deliverables"
+                    :key="index"
+                    class="flex gap-2.5 text-sm text-muted-foreground"
+                >
+                    <span
+                        class="mt-0.5 shrink-0 text-xs tabular-nums opacity-60"
+                        >{{ index + 1 }}.</span
+                    >
+                    <span class="preflight [&_p]:inline" v-html="item" />
+                </li>
+            </ul>
+        </section>
+
+        <!-- The run control sits under the gate and the warnings, so it is
+             never possible to start work without having seen what will be
+             required to release it. -->
         <section
             v-if="enabled"
             class="flex flex-col gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"

@@ -91,6 +91,16 @@ class SkillController extends Controller
             'skill' => [
                 ...$this->summarise($skill),
                 'body' => Str::markdown($skill->body),
+                // Lifted out of the body so they can be read before the run
+                // rather than only after a reviewer finds the same mistake.
+                'failureModes' => array_map(
+                    fn (string $item) => Str::markdown($item),
+                    $skill->failure_modes ?? [],
+                ),
+                'deliverables' => array_map(
+                    fn (string $item) => Str::markdown($item),
+                    $skill->deliverables ?? [],
+                ),
                 'tokenEstimate' => $skill->token_estimate,
                 'dateAdded' => $skill->date_added?->toDateString(),
                 'lastReviewed' => $skill->last_reviewed?->toDateString(),

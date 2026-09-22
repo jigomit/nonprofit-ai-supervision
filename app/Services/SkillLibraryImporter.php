@@ -135,7 +135,7 @@ class SkillLibraryImporter
     }
 
     /**
-     * @return array{slug:string, name:string, description:string, category:string, is_core:bool, supervision:string, supervision_note:string, body:string, body_hash:string, token_estimate:int, date_added:?string, last_reviewed:?string, license:?string, references:array<int,string>}
+     * @return array{slug:string, name:string, description:string, category:string, is_core:bool, supervision:string, supervision_note:string, failure_modes:array<int,string>, deliverables:array<int,string>, body:string, body_hash:string, token_estimate:int, date_added:?string, last_reviewed:?string, license:?string, references:array<int,string>}
      */
     public function parse(string $file): array
     {
@@ -173,6 +173,9 @@ class SkillLibraryImporter
             'is_core' => in_array($category, (array) config('skills.core_categories', []), true),
             'supervision' => $supervision,
             'supervision_note' => (string) ($metadata['supervision_note'] ?? ''),
+            // Shown to the person before the run, not only to the model.
+            'failure_modes' => $this->bulletsUnder($body, 'Common Failure Modes'),
+            'deliverables' => $this->bulletsUnder($body, 'Standard Deliverables'),
             'body' => $body,
             'body_hash' => hash('sha256', $body),
             'token_estimate' => (int) ceil(strlen($body) / self::CHARS_PER_TOKEN),
@@ -181,6 +184,43 @@ class SkillLibraryImporter
             'license' => isset($meta['license']) ? (string) $meta['license'] : null,
             'references' => $this->extractReferences($description, $slug),
         ];
+    }
+
+    /**
+     * The bullet points under one heading of a skill body.
+     *
+     * The library writes these as wrapped markdown list items, often with a
+     * bold label, so a continuation line belongs to the item above it rather
+     * than starting a new one. Both bullets and numbered lists appear —
+     * failure modes are written with dashes throughout, deliverables are
+     * numbered in 13 of the 64 skills that have them.
+     *
+     * @return array<int, string>
+     */
+    protected function bulletsUnder(string $body, string $heading): array
+    {
+        $pattern = '/^##\s+'.preg_quote($heading, '/').'\s*$(.*?)(?=^##\s|\z)/ms';
+
+        if (preg_match($pattern, $body, $matches) !== 1) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach (preg_split('/\R/', trim($matches[1])) ?: [] as $line) {
+            if (preg_match('/^\s*(?:[-*+]|\d+[.)])\s+(.*)$/', $line, $bullet) === 1) {
+                $items[] = trim($bullet[1]);
+
+                continue;
+            }
+
+            // A wrapped continuation of the bullet above.
+            if (trim($line) !== '' && $items !== []) {
+                $items[array_key_last($items)] .= ' '.trim($line);
+            }
+        }
+
+        return array_values(array_filter($items));
     }
 
     /**

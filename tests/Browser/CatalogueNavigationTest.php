@@ -89,3 +89,25 @@ it('filters the catalogue by supervision level', function () {
         ->assertDontSee('Social media posts')
         ->assertNoJavascriptErrors();
 });
+
+it('shows the known mistakes above the run control', function () {
+    $user = User::factory()->create();
+    $team = $user->personalTeam();
+    $this->actingAs($user);
+
+    $skill = Skill::factory()->create([
+        'name' => 'Annual appeals',
+        'failure_modes' => ['**Weak P.S.**: skipping the highest-read line of the letter.'],
+        'deliverables' => ['A segmented appeal letter.'],
+    ]);
+    app(SyncTeamCatalogue::class)->handle($team);
+
+    $page = visit('/'.$team->slug.'/skills/'.$skill->slug);
+
+    $page->assertSee('Where this usually goes wrong')
+        ->assertSee('skipping the highest-read line of the letter')
+        ->assertSee('What you should end up with')
+        ->assertSee('A segmented appeal letter.')
+        ->assertSee('Run this task')
+        ->assertNoJavascriptErrors();
+});
