@@ -111,6 +111,16 @@ php artisan test
 
 Laravel 13, Inertia 3, Vue 3, Tailwind 4, Pest 5. Anthropic goes through the official PHP SDK, so skill instructions can be sent as a cached system block and repeated runs of the same task reuse them; every other provider speaks OpenAI's chat-completions shape and shares one driver, which makes adding another an entry in `config/ai.php`.
 
+## Who built this
+
+[JIGOMIT](https://jigomit.com) builds software for nonprofits. This was built to be
+used, not just read — if you run a nonprofit and want to try it, or you have found
+something wrong with it, open an issue or come and
+[say hello](https://jigomit.com/contact).
+
+We also do a [pro bono programme](https://jigomit.com/pro-bono) for organisations
+that cannot pay for this kind of work.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE) and [NOTICE](NOTICE). The skills library it reads is separately MIT-licensed and is not redistributed here.
