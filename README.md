@@ -112,6 +112,6 @@ Laravel 13, Inertia 3, Vue 3, Tailwind 4, Pest 5. Anthropic goes through the off
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). The skills library it reads is separately MIT-licensed and is not redistributed here.
+MIT — see [LICENSE](LICENSE) and [NOTICE](NOTICE). The skills library it reads is separately MIT-licensed and is not redistributed here.
 
 [^1]: NTEN and The Bridgespan Group, _State of Nonprofit AI_ (2026, n=917); Virtuous and Fundraising.AI, _Nonprofit AI Adoption Report_ (2026, n=346).

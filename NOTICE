@@ -1,0 +1,9 @@
+Signoff / nonprofit-ai-supervision
+Copyright (c) 2026 Dhavalkumar Mesavaniya / JIGOMIT
+Licensed under the MIT License — see LICENSE.
+
+This software reads the Nonprofit AI Skills Library
+(https://github.com/sector-skills/nonprofit-skills), maintained by Brendon
+Connelly and contributors and licensed MIT. That library's content is not
+redistributed here; it is fetched at install time and its own licence and
+copyright notice apply to it.

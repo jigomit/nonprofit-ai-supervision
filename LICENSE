@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This software reads the Nonprofit AI Skills Library
-(https://github.com/sector-skills/nonprofit-skills), maintained by Brendon
-Connelly and contributors and licensed MIT. That library's content is not
-redistributed here; it is fetched at install time and its own licence and
-copyright notice apply to it.
