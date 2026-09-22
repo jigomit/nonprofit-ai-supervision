@@ -115,6 +115,14 @@ class TaskRun extends Model
     }
 
     /**
+     * @return HasMany<TaskRunAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TaskRunAttachment::class);
+    }
+
+    /**
      * @return HasMany<Approval, $this>
      */
     public function approvals(): HasMany

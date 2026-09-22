@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { ArrowLeft, Play, TriangleAlert } from '@lucide/vue';
+import { ArrowLeft, FileText, Play, TriangleAlert } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
@@ -48,7 +48,24 @@ const props = defineProps<Props>();
 const teamSlug = computed(() => props.currentTeam?.slug ?? '');
 const catalogueUrl = computed(() => skillsIndex(teamSlug.value).url);
 
-const run = useForm({ skill: props.skill.slug, notes: '' });
+const run = useForm<{ skill: string; notes: string; files: File[] }>({
+    skill: props.skill.slug,
+    notes: '',
+    files: [],
+});
+
+const pickFiles = (event: Event) => {
+    run.files = Array.from((event.target as HTMLInputElement).files ?? []);
+};
+
+const dropFile = (index: number) => {
+    run.files = run.files.filter((_, at) => at !== index);
+};
+
+const readableSize = (bytes: number) =>
+    bytes < 1024 * 1024
+        ? `${Math.round(bytes / 1024)} KB`
+        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
 defineOptions({
     layout: (props: { currentTeam?: Team | null }) => ({
@@ -180,6 +197,50 @@ defineOptions({
                     />
                     <InputError :message="run.errors.notes" />
                     <InputError :message="run.errors.skill" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="files">Documents (optional)</Label>
+                    <input
+                        id="files"
+                        type="file"
+                        multiple
+                        accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.tsv,.json,.log"
+                        class="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-accent"
+                        @change="pickFiles"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        Last year's 990, the budget, an export from your CRM.
+                        The words inside are sent with the task; a scan with no
+                        text in it cannot be read.
+                    </p>
+
+                    <ul v-if="run.files.length" class="flex flex-col gap-1">
+                        <li
+                            v-for="(file, index) in run.files"
+                            :key="file.name + index"
+                            class="flex items-center gap-2 text-sm"
+                        >
+                            <FileText
+                                class="size-3.5 shrink-0 text-muted-foreground"
+                            />
+                            <span class="truncate">{{ file.name }}</span>
+                            <span
+                                class="shrink-0 text-xs text-muted-foreground tabular-nums"
+                                >{{ readableSize(file.size) }}</span
+                            >
+                            <button
+                                type="button"
+                                class="shrink-0 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                                @click="dropFile(index)"
+                            >
+                                Remove
+                            </button>
+                        </li>
+                    </ul>
+
+                    <InputError :message="run.errors.files" />
+                    <InputError :message="(run.errors as Record<string, string>)['files.0']" />
                 </div>
                 <div>
                     <Button type="submit" :disabled="run.processing">

@@ -5,6 +5,7 @@ import {
     Check,
     Copy,
     Download,
+    FileText,
     RotateCcw,
     ShieldAlert,
     X,
@@ -19,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
 import {
+    attachment as taskAttachment,
     decision as taskDecision,
     download as taskDownload,
     index as tasksIndex,
@@ -48,6 +50,17 @@ type Props = {
         revisedFrom: number | null;
         failureReason: string | null;
         inputs: Record<string, string> | null;
+        attachments: {
+            id: number;
+            name: string;
+            size: string;
+            status: string;
+            statusLabel: string;
+            explanation: string | null;
+            reachedTheModel: boolean;
+            truncated: boolean;
+            characters: number;
+        }[];
         usage: Record<string, number> | null;
         sourceCommit: string | null;
         createdAt: string | null;
@@ -101,6 +114,9 @@ const decisionUrl = computed(() => taskDecision(routeArgs.value).url);
 const inviteUrl = computed(() => taskInviteExpert(routeArgs.value).url);
 const downloadUrl = computed(() => taskDownload(routeArgs.value).url);
 const reviseUrl = computed(() => taskRevise(routeArgs.value).url);
+
+const attachmentUrl = (attachment: number) =>
+    taskAttachment({ ...routeArgs.value, attachment }).url;
 
 const originalUrl = computed(() =>
     props.run.revisedFrom
@@ -210,6 +226,69 @@ defineOptions({
                 <span class="font-medium">Why this level:</span>
                 {{ run.supervisionNote }}
             </p>
+        </section>
+
+        <section
+            v-if="run.attachments.length"
+            class="flex flex-col gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+        >
+            <h2 class="text-sm font-semibold">Documents given to this task</h2>
+
+            <ul class="flex flex-col gap-3">
+                <li
+                    v-for="file in run.attachments"
+                    :key="file.id"
+                    class="flex flex-wrap items-start gap-x-3 gap-y-1 text-sm"
+                >
+                    <FileText
+                        class="mt-0.5 size-4 shrink-0"
+                        :class="
+                            file.reachedTheModel
+                                ? 'text-muted-foreground'
+                                : 'text-amber-600'
+                        "
+                    />
+                    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <div class="flex flex-wrap items-baseline gap-x-2">
+                            <a
+                                :href="attachmentUrl(file.id)"
+                                class="truncate font-medium underline underline-offset-4"
+                                >{{ file.name }}</a
+                            >
+                            <span
+                                class="text-xs text-muted-foreground tabular-nums"
+                                >{{ file.size }}</span
+                            >
+                            <span
+                                class="text-xs"
+                                :class="
+                                    file.reachedTheModel
+                                        ? 'text-muted-foreground'
+                                        : 'font-medium text-amber-700 dark:text-amber-300'
+                                "
+                                >{{ file.statusLabel }}</span
+                            >
+                        </div>
+                        <!-- A file the model never read must say so here. A
+                             reviewer who assumes the 990 was used will check
+                             the draft against a document it never saw. -->
+                        <p
+                            v-if="file.explanation"
+                            class="text-xs text-amber-700 dark:text-amber-300"
+                        >
+                            {{ file.explanation }}
+                        </p>
+                        <p
+                            v-else-if="file.truncated"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Longer than fits in one task — the first
+                            {{ file.characters.toLocaleString() }} characters
+                            were used.
+                        </p>
+                    </div>
+                </li>
+            </ul>
         </section>
 
         <div

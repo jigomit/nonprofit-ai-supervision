@@ -8,9 +8,11 @@ use App\Enums\TaskRunStatus;
 use App\Exceptions\GateViolation;
 use App\Models\Skill;
 use App\Models\TaskRun;
+use App\Models\TaskRunAttachment;
 use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -54,14 +56,27 @@ class TaskRunController extends Controller
         $validated = $request->validate([
             'skill' => ['required', 'string', 'exists:skills,slug'],
             'notes' => ['nullable', 'string', 'max:4000'],
+            'files' => ['array', 'max:'.config('signoff.attachments.max_files', 5)],
+            'files.*' => [
+                'file',
+                'max:'.config('signoff.attachments.max_kilobytes', 10240),
+                // By extension rather than by mime: the list is what this
+                // application can actually read the words out of, and a
+                // browser's guess at a CSV's type is not dependable.
+                'extensions:'.implode(',', (array) config('signoff.attachments.extensions', [])),
+            ],
         ]);
 
         $skill = Skill::query()->where('slug', $validated['skill'])->sole();
 
         try {
-            $run = $start->handle($team, $skill, $request->user(), [
-                'notes' => $validated['notes'] ?? '',
-            ]);
+            $run = $start->handle(
+                team: $team,
+                skill: $skill,
+                user: $request->user(),
+                inputs: ['notes' => $validated['notes'] ?? ''],
+                files: $request->file('files', []),
+            );
         } catch (GateViolation $e) {
             return back()->withErrors(['skill' => $e->getMessage()]);
         }
@@ -74,7 +89,7 @@ class TaskRunController extends Controller
         $team = $this->resolveTeam($request);
         abort_unless($taskRun->team_id === $team->id, 404);
 
-        $taskRun->load(['skill', 'requester', 'approvals.user', 'expertInvitations']);
+        $taskRun->load(['skill', 'requester', 'approvals.user', 'expertInvitations', 'attachments']);
 
         return Inertia::render('tasks/Show', [
             'run' => [
@@ -88,6 +103,20 @@ class TaskRunController extends Controller
                 'revisedFrom' => $taskRun->revised_from_id,
                 'failureReason' => $taskRun->failure_reason,
                 'inputs' => $taskRun->inputs,
+                // What the model was actually given, including the files it
+                // was not: a reviewer who thinks the 990 was read will review
+                // the draft as though it was.
+                'attachments' => $taskRun->attachments->map(fn (TaskRunAttachment $file) => [
+                    'id' => $file->id,
+                    'name' => $file->original_name,
+                    'size' => $file->humanSize(),
+                    'status' => $file->extraction->value,
+                    'statusLabel' => $file->extraction->label(),
+                    'explanation' => $file->extraction->explanation(),
+                    'reachedTheModel' => $file->extraction->reachedTheModel(),
+                    'truncated' => $file->truncated,
+                    'characters' => $file->text_chars,
+                ]),
                 'supervisionNote' => $taskRun->skill->supervision_note,
                 'supervisionGate' => $taskRun->supervision_at_run->gate(),
                 'allowsOverride' => $taskRun->allowsExpertOverride(),
@@ -134,6 +163,30 @@ class TaskRunController extends Controller
             $filename,
             ['Content-Type' => 'text/markdown; charset=UTF-8'],
         );
+    }
+
+    /**
+     * Hand back a file this organization uploaded.
+     *
+     * Streamed from a private disk rather than linked, so the only way to a
+     * document is through a membership check.
+     */
+    public function attachment(
+        Request $request,
+        string $currentTeam,
+        TaskRun $taskRun,
+        TaskRunAttachment $attachment,
+    ): StreamedResponse {
+        $team = $this->resolveTeam($request);
+
+        abort_unless($taskRun->team_id === $team->id, 404);
+        abort_unless($attachment->task_run_id === $taskRun->id, 404);
+
+        $disk = Storage::disk($attachment->disk());
+
+        abort_unless($disk->exists($attachment->path), 404);
+
+        return $disk->download($attachment->path, $attachment->original_name);
     }
 
     /**

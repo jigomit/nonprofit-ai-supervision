@@ -13,6 +13,7 @@ use App\Models\TaskSchedule;
 use App\Models\Team;
 use App\Models\TeamSkill;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Starts one task for one organization.
@@ -25,8 +26,13 @@ use App\Models\User;
  */
 class StartTaskRun
 {
+    public function __construct(
+        protected AttachFilesToRun $attach,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $inputs
+     * @param  array<int, UploadedFile>  $files
      *
      * @throws GateViolation when the task is not in the organization's
      *                       catalogue, or the organization has run its
@@ -39,6 +45,7 @@ class StartTaskRun
         array $inputs = [],
         ?TaskSchedule $schedule = null,
         ?TaskRun $revisionOf = null,
+        array $files = [],
     ): TaskRun {
         $pivot = $this->catalogueEntry($team, $skill);
         $profile = $team->organizationProfile;
@@ -64,6 +71,17 @@ class StartTaskRun
             'skill_body_hash' => $skill->body_hash,
             'skill_source_commit' => $skill->source_commit,
         ]);
+
+        // Before the job is queued, not after: on a real queue the worker can
+        // reach the run in the same moment, and a draft written without the
+        // documents it was given is exactly the silent wrong answer this
+        // application exists to prevent.
+        if ($files !== []) {
+            $this->attach->handle($run, $files);
+        } elseif ($revisionOf !== null) {
+            // A second attempt works from the same papers as the first.
+            $this->attach->copy($revisionOf, $run);
+        }
 
         // Starting the work is what satisfies the occurrence, not finishing
         // it: the schedule tracks whether someone got to it, and the gate

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OrganizationProfile;
 use App\Models\TaskRun;
+use App\Models\TaskRunAttachment;
 
 /**
  * Assembles the request for one run.
@@ -63,6 +64,15 @@ class TaskPromptBuilder
             $sections[] = "## What was asked for\n".$inputs;
         }
 
+        // After the cache breakpoint, like everything else that varies. A
+        // document interpolated into the system block would make every run a
+        // cache miss and multiply the bill silently.
+        $documents = $this->formatAttachments($run);
+
+        if ($documents !== '') {
+            $sections[] = $documents;
+        }
+
         // Stated on every request rather than assumed. The model's output is
         // going to a person who has to decide whether to release it, and the
         // level it carries governs how hard they have to look.
@@ -102,6 +112,40 @@ class TaskPromptBuilder
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The organization's own papers: last year's 990, the budget, a CRM
+     * export. Each is fenced and named, so the model can cite which document a
+     * figure came from and a reviewer can check it.
+     */
+    protected function formatAttachments(TaskRun $run): string
+    {
+        $readable = $run->attachments->filter(
+            fn (TaskRunAttachment $attachment) => $attachment->extraction->reachedTheModel()
+                && $attachment->text !== null,
+        );
+
+        if ($readable->isEmpty()) {
+            return '';
+        }
+
+        $documents = $readable->map(function (TaskRunAttachment $attachment) {
+            $note = $attachment->truncated
+                ? "\n\n[This document was longer than could be included; it stops here.]"
+                : '';
+
+            return sprintf(
+                "### %s\n```\n%s%s\n```",
+                $attachment->original_name,
+                $attachment->text,
+                $note,
+            );
+        })->implode("\n\n");
+
+        return "## Documents provided\n".
+            "These are the organization's own records. Prefer them over anything you would "
+            ."otherwise assume, and say which document a figure came from.\n\n".$documents;
     }
 
     protected function formatInputs(TaskRun $run): string
