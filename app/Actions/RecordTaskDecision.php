@@ -10,7 +10,9 @@ use App\Models\Approval;
 use App\Models\ExpertInvitation;
 use App\Models\TaskRun;
 use App\Models\User;
+use App\Notifications\DecisionRecorded;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * The gate. Every release of a piece of work goes through here.
@@ -64,8 +66,26 @@ class RecordTaskDecision
                 'released_without_expert' => $decision === ApprovalDecision::ReleasedWithoutExpert,
             ])->save();
 
+            $this->tellTheRequester($run, $approval, $user);
+
             return $approval;
         });
+    }
+
+    /**
+     * The person who asked for the work is the one most likely to use it, so
+     * they are told what standing it was cleared at. No point mailing someone
+     * about a decision they just made themselves.
+     */
+    protected function tellTheRequester(TaskRun $run, Approval $approval, ?User $decider): void
+    {
+        $requester = $run->requester;
+
+        if ($decider !== null && $decider->id === $requester->id) {
+            return;
+        }
+
+        Notification::send($requester, new DecisionRecorded($approval));
     }
 
     protected function guard(

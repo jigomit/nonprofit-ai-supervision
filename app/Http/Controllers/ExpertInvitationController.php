@@ -7,8 +7,10 @@ use App\Enums\TaskRunStatus;
 use App\Models\ExpertInvitation;
 use App\Models\TaskRun;
 use App\Models\Team;
+use App\Notifications\ExpertReviewRequested;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -30,7 +32,7 @@ class ExpertInvitationController extends Controller
             'credential_type' => ['nullable', Rule::enum(CredentialType::class)],
         ]);
 
-        ExpertInvitation::create([
+        $invitation = ExpertInvitation::create([
             'token' => ExpertInvitation::generateToken(),
             'task_run_id' => $taskRun->id,
             'invited_by' => $request->user()->id,
@@ -40,7 +42,11 @@ class ExpertInvitationController extends Controller
             'expires_at' => now()->addDays(ExpertInvitation::LIFETIME_DAYS),
         ]);
 
-        return back()->with('status', 'Invitation link created.');
+        // They have no account here, so this goes to a bare address.
+        Notification::route('mail', $invitation->email)
+            ->notify(new ExpertReviewRequested($invitation));
+
+        return back()->with('status', 'Sent. They can also be given the link directly.');
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Concerns\GeneratesUniqueTeamSlugs;
+use App\Enums\SupervisionLevel;
+use App\Enums\TeamPermission;
 use App\Enums\TeamRole;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -119,6 +121,29 @@ class Team extends Model
             ->using(TeamSkill::class)
             ->withPivot(['enabled', 'supervision_override'])
             ->withTimestamps();
+    }
+
+    /**
+     * The people who can clear a gate of this kind.
+     *
+     * A review gate can be cleared by anyone on the team. An expert gate
+     * cannot be cleared by a member at all — only an owner or admin can invite
+     * a professional or, where policy allows, release without one — so telling
+     * everyone would be noise.
+     *
+     * @return Collection<int, User>
+     */
+    public function decidersFor(SupervisionLevel $level): Collection
+    {
+        $members = $this->members()->get();
+
+        if ($level !== SupervisionLevel::ExpertRequired) {
+            return $members;
+        }
+
+        return $members->filter(
+            fn (User $user) => $user->hasTeamPermission($this, TeamPermission::UpdateTeam)
+        )->values();
     }
 
     /**

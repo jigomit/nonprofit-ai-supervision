@@ -4,9 +4,12 @@ namespace App\Jobs;
 
 use App\Enums\TaskRunStatus;
 use App\Models\TaskRun;
+use App\Models\User;
+use App\Notifications\WorkAwaitingDecision;
 use App\Services\TaskExecutor;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Notification;
 use Throwable;
 
 class RunTaskJob implements ShouldQueue
@@ -55,6 +58,25 @@ class RunTaskJob implements ShouldQueue
             'completed_at' => now(),
             'released_at' => $run->supervision_at_run->releasesAutomatically() ? now() : null,
         ])->save();
+
+        $this->tellTheDeciders($run);
+    }
+
+    /**
+     * An approval queue nobody is told about is a queue nobody empties. The
+     * requester is skipped — they just started it.
+     */
+    protected function tellTheDeciders(TaskRun $run): void
+    {
+        if (! $run->status->isAwaitingDecision()) {
+            return;
+        }
+
+        $deciders = $run->team
+            ->decidersFor($run->supervision_at_run)
+            ->reject(fn (User $user) => $user->id === $run->requested_by);
+
+        Notification::send($deciders, new WorkAwaitingDecision($run));
     }
 
     public function failed(?Throwable $exception): void
