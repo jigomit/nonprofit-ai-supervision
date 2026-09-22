@@ -1,6 +1,8 @@
 # Signoff
 
-**Supervised AI for nonprofits. The level of review a task needs is a property of the task, and the application enforces it.**
+**Nonprofit AI supervision: the level of review a task needs is a property of the task, and the application enforces it.**
+
+_The repository is `nonprofit-ai-supervision`; the application calls itself Signoff._
 
 Most nonprofits already use AI. Very few can say what it produced, who checked it, or on what basis — 53% report informal, unofficial use, and only about 4% have documented, repeatable AI workflows.[^1] The usual answer is a written policy. A policy does not stop anything.
 
