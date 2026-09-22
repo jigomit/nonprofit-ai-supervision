@@ -71,6 +71,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Local timeout
+    |--------------------------------------------------------------------------
+    |
+    | A laptop generating a few thousand tokens is minutes, not seconds, and a
+    | run that times out halfway is worse than one that takes a while.
+    |
+    */
+
+    'ollama_timeout' => (int) env('AI_OLLAMA_TIMEOUT', 900),
+
+    /*
+    |--------------------------------------------------------------------------
     | Prompt cache lifetime (Anthropic only)
     |--------------------------------------------------------------------------
     */

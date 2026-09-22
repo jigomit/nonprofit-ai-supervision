@@ -8,6 +8,7 @@ use App\Models\TaskRun;
 use App\Models\User;
 use App\Services\AiCredentials;
 use App\Services\AnthropicExecutor;
+use App\Services\OllamaExecutor;
 use App\Services\OpenAiCompatibleExecutor;
 use App\Services\PlaceholderTaskExecutor;
 use App\Services\TaskExecutorFactory;
@@ -175,7 +176,7 @@ it('picks the driver from the organization', function (?string $provider, string
     'xai' => ['xai', OpenAiCompatibleExecutor::class],
     'mistral' => ['mistral', OpenAiCompatibleExecutor::class],
     'meta' => ['meta', OpenAiCompatibleExecutor::class],
-    'ollama' => ['ollama', OpenAiCompatibleExecutor::class],
+    'ollama' => ['ollama', OllamaExecutor::class],
     'nothing configured' => [null, PlaceholderTaskExecutor::class],
 ]);
 
@@ -214,26 +215,6 @@ it('sends the skill body and the organization context to an openai-compatible pr
             && $body['messages'][0]['content'] === 'Follow these instructions exactly.'
             && str_contains($body['messages'][1]['content'], 'Housing support for families in Akron.');
     });
-});
-
-it('sends no bearer token to a local ollama', function () {
-    Http::fake([
-        'localhost:11434/*' => Http::response([
-            'choices' => [['message' => ['content' => 'A local draft.']]],
-        ]),
-    ]);
-
-    OrganizationProfile::create([
-        'team_id' => $this->team->id,
-        'ai_provider' => AiProvider::Ollama,
-        'ai_model' => 'llama3',
-    ]);
-
-    $run = TaskRun::factory()->for($this->team)->for(Skill::factory())->create();
-
-    expect(app(TaskExecutorFactory::class)->execute($run)->output)->toBe('A local draft.');
-
-    Http::assertSent(fn ($request) => ! $request->hasHeader('Authorization'));
 });
 
 it('repeats what the provider said when a request is refused', function () {

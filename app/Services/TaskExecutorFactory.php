@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AiProvider;
 use App\Models\TaskRun;
 
 /**
@@ -33,8 +34,13 @@ class TaskExecutorFactory implements TaskExecutor
             return new PlaceholderTaskExecutor($this->prompts);
         }
 
-        return $credentials->provider->isOpenAiCompatible()
-            ? new OpenAiCompatibleExecutor($this->prompts, $credentials)
-            : new AnthropicExecutor($this->prompts, $credentials);
+        return match ($credentials->provider) {
+            AiProvider::Anthropic => new AnthropicExecutor($this->prompts, $credentials),
+            // Ollama speaks the OpenAI shape too, but that endpoint gives no
+            // way to set the context window — and at its default this
+            // catalogue's instructions are silently cut in half.
+            AiProvider::Ollama => new OllamaExecutor($this->prompts, $credentials),
+            default => new OpenAiCompatibleExecutor($this->prompts, $credentials),
+        };
     }
 }

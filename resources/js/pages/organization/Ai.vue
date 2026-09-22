@@ -221,6 +221,21 @@ defineOptions({
                             <InputError :message="form.errors.ai_api_key" />
                         </div>
 
+                        <div
+                            v-if="selected.needsBaseUrl"
+                            class="flex gap-3 rounded-lg border border-sidebar-border/70 p-3 text-sm text-muted-foreground dark:border-sidebar-border"
+                        >
+                            <TriangleAlert class="mt-0.5 size-4 shrink-0" />
+                            <p>
+                                Running locally keeps your work on your own
+                                machine, but a small model cannot hold a long
+                                task. Where the instructions would not fit, the
+                                run is refused and says so — it is never drafted
+                                from half of them. Models with a large context
+                                window handle the whole catalogue.
+                            </p>
+                        </div>
+
                         <div class="grid gap-2">
                             <Label for="ai_base_url">
                                 Address
