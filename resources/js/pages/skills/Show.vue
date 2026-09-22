@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { ArrowLeft, Play } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -7,6 +8,8 @@ import SupervisionBadge from '@/components/SupervisionBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
+import { index as skillsIndex, show as skillShow } from '@/routes/skills';
+import { store as tasksStore } from '@/routes/tasks';
 import type { Team } from '@/types';
 
 type Props = {
@@ -40,6 +43,9 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const teamSlug = computed(() => props.currentTeam?.slug ?? '');
+const catalogueUrl = computed(() => skillsIndex(teamSlug.value).url);
+
 const run = useForm({ skill: props.skill.slug, notes: '' });
 
 defineOptions({
@@ -51,7 +57,12 @@ defineOptions({
                     ? dashboard(props.currentTeam.slug)
                     : '/',
             },
-            { title: 'Skill catalogue', href: '../skills' },
+            {
+                title: 'Skill catalogue',
+                href: props.currentTeam
+                    ? skillsIndex(props.currentTeam.slug).url
+                    : '/',
+            },
         ],
     }),
 });
@@ -62,7 +73,7 @@ defineOptions({
 
     <div class="flex h-full flex-1 flex-col gap-6 p-4">
         <Link
-            href="../skills"
+            :href="catalogueUrl"
             class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
             <ArrowLeft class="size-4" />
@@ -101,7 +112,11 @@ defineOptions({
             <h2 class="text-sm font-semibold">Run this task</h2>
             <form
                 class="flex flex-col gap-3"
-                @submit.prevent="run.post(`../tasks`, { preserveScroll: true })"
+                @submit.prevent="
+                    run.post(tasksStore(teamSlug).url, {
+                        preserveScroll: true,
+                    })
+                "
             >
                 <div class="grid gap-2">
                     <Label for="notes">What do you need?</Label>
@@ -163,7 +178,12 @@ defineOptions({
                 <Link
                     v-for="related in skill.related"
                     :key="related.slug"
-                    :href="`../skills/${related.slug}`"
+                    :href="
+                        skillShow({
+                            current_team: teamSlug,
+                            skill: related.slug,
+                        }).url
+                    "
                     class="inline-flex items-center gap-2 rounded-lg border border-sidebar-border/70 px-3 py-1.5 text-xs transition-colors hover:bg-accent/50 dark:border-sidebar-border"
                 >
                     {{ related.name }}

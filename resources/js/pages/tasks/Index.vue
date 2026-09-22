@@ -5,6 +5,7 @@ import Heading from '@/components/Heading.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
 import TaskStatusPill from '@/components/TaskStatusPill.vue';
 import { dashboard } from '@/routes';
+import { show as taskShow } from '@/routes/tasks';
 import type { Team } from '@/types';
 
 type RunSummary = {
@@ -42,6 +43,7 @@ const filterTo = (status: string) => {
 };
 
 const activeFilter = computed(() => props.filters.status);
+const teamSlug = computed(() => props.currentTeam?.slug ?? '');
 
 const formatDate = (value: string | null) =>
     value
@@ -159,7 +161,12 @@ defineOptions({
                     >
                         <td class="px-4 py-3">
                             <Link
-                                :href="`tasks/${run.id}`"
+                                :href="
+                                    taskShow({
+                                        current_team: teamSlug,
+                                        taskRun: run.id,
+                                    }).url
+                                "
                                 class="font-medium underline-offset-4 hover:underline"
                             >
                                 {{ run.skill.name }}

@@ -5,6 +5,11 @@ import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
+import {
+    acknowledge as reportAcknowledge,
+    exportMethod as reportExport,
+    index as reportIndex,
+} from '@/routes/report';
 import type { Team } from '@/types';
 
 type Props = {
@@ -47,7 +52,11 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const base = computed(() => `/${props.currentTeam?.slug}/report`);
+const teamSlug = computed(() => props.currentTeam?.slug ?? '');
+const base = computed(() => reportIndex(teamSlug.value).url);
+const exportUrl = computed(
+    () => reportExport(teamSlug.value).url + `?days=${props.period.days}`,
+);
 
 const periodLabel = (days: number) =>
     days === 365 ? 'Last 12 months' : `Last ${days} days`;
@@ -95,7 +104,7 @@ defineOptions({
                 :description="`How much work AI touched since ${period.since}, and who cleared it.`"
             />
             <a
-                :href="`${base}/export?days=${period.days}`"
+                :href="exportUrl"
                 class="inline-flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm shadow-xs transition-colors hover:bg-accent"
             >
                 <Download class="size-4" />
@@ -150,7 +159,10 @@ defineOptions({
                         variant="outline"
                         @click="
                             router.post(
-                                `${base}/changes/${change.id}`,
+                                reportAcknowledge({
+                                    current_team: teamSlug,
+                                    change: change.id,
+                                }).url,
                                 {},
                                 { preserveScroll: true },
                             )

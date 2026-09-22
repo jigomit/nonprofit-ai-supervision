@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
+import { show as skillShow } from '@/routes/skills';
+import {
+    destroy as scheduleDestroy,
+    index as schedulesIndex,
+    run as scheduleRun,
+    update as scheduleUpdate,
+} from '@/routes/schedules';
 import type { Team } from '@/types';
 
 type Schedule = {
@@ -37,7 +44,13 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const base = computed(() => `/${props.currentTeam?.slug}/calendar`);
+const teamSlug = computed(() => props.currentTeam?.slug ?? '');
+const base = computed(() => schedulesIndex(teamSlug.value).url);
+
+const scheduleArgs = (id: number) => ({
+    current_team: teamSlug.value,
+    schedule: id,
+});
 
 const form = useForm({
     skill: '',
@@ -159,7 +172,12 @@ defineOptions({
                     >
                         <td class="px-4 py-3">
                             <Link
-                                :href="`skills/${schedule.skill.slug}`"
+                                :href="
+                                    skillShow({
+                                        current_team: currentTeam?.slug ?? '',
+                                        skill: schedule.skill.slug,
+                                    }).url
+                                "
                                 class="font-medium underline-offset-4 hover:underline"
                             >
                                 {{ schedule.skill.name }}
@@ -201,7 +219,9 @@ defineOptions({
                                     variant="outline"
                                     @click="
                                         router.post(
-                                            `${base}/${schedule.id}/run`,
+                                            scheduleRun(
+                                                scheduleArgs(schedule.id),
+                                            ).url,
                                         )
                                     "
                                 >
@@ -215,7 +235,9 @@ defineOptions({
                                     "
                                     @click="
                                         router.patch(
-                                            `${base}/${schedule.id}`,
+                                            scheduleUpdate(
+                                                scheduleArgs(schedule.id),
+                                            ).url,
                                             { is_active: !schedule.isActive },
                                             { preserveScroll: true },
                                         )
@@ -233,7 +255,9 @@ defineOptions({
                                     aria-label="Remove from calendar"
                                     @click="
                                         router.delete(
-                                            `${base}/${schedule.id}`,
+                                            scheduleDestroy(
+                                                scheduleArgs(schedule.id),
+                                            ).url,
                                             { preserveScroll: true },
                                         )
                                     "

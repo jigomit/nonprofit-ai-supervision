@@ -10,6 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
+import {
+    decision as taskDecision,
+    index as tasksIndex,
+    inviteExpert as taskInviteExpert,
+} from '@/routes/tasks';
 import type { Team } from '@/types';
 
 type Props = {
@@ -68,8 +73,13 @@ const invite = useForm({ email: '', name: '', credential_type: '' });
 const showOverride = ref(false);
 const copied = ref<string | null>(null);
 
-const decisionUrl = `/${props.currentTeam?.slug}/tasks/${props.run.id}/decision`;
-const inviteUrl = `/${props.currentTeam?.slug}/tasks/${props.run.id}/expert-invitation`;
+const workUrl = tasksIndex(props.currentTeam?.slug ?? '').url;
+const routeArgs = {
+    current_team: props.currentTeam?.slug ?? '',
+    taskRun: props.run.id,
+};
+const decisionUrl = taskDecision(routeArgs).url;
+const inviteUrl = taskInviteExpert(routeArgs).url;
 
 const submitDecision = (value: string) => {
     decision.decision = value;
@@ -98,7 +108,12 @@ defineOptions({
                     ? dashboard(props.currentTeam.slug)
                     : '/',
             },
-            { title: 'Work', href: '../tasks' },
+            {
+                title: 'Work',
+                href: props.currentTeam
+                    ? tasksIndex(props.currentTeam.slug).url
+                    : '/',
+            },
         ],
     }),
 });
@@ -109,7 +124,7 @@ defineOptions({
 
     <div class="flex h-full flex-1 flex-col gap-6 p-4">
         <Link
-            href="../tasks"
+            :href="workUrl"
             class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
             <ArrowLeft class="size-4" />

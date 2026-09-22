@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
 import { dashboard } from '@/routes';
+import { show as skillShow } from '@/routes/skills';
 import type { Team } from '@/types';
 
 type SkillSummary = {
@@ -43,6 +44,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const teamSlug = computed(() => props.currentTeam?.slug ?? '');
 
 const search = ref(props.filters.search);
 const category = ref(props.filters.category);
@@ -223,7 +226,9 @@ defineOptions({
             <Link
                 v-for="skill in skills"
                 :key="skill.slug"
-                :href="`skills/${skill.slug}`"
+                :href="
+                    skillShow({ current_team: teamSlug, skill: skill.slug }).url
+                "
                 class="flex flex-col gap-3 rounded-xl border border-sidebar-border/70 p-4 transition-colors hover:bg-accent/50 dark:border-sidebar-border"
             >
                 <div class="flex items-start justify-between gap-3">
