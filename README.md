@@ -40,20 +40,39 @@ Published for the discussion around it more than for installation.
 
 ## Running it
 
-Requires PHP 8.3+, MySQL, Node, and Composer.
+Requires PHP 8.3+, MySQL, Node 22, and Composer. `poppler` (for `pdftotext`) if you
+want PDFs to be readable when attached — without it a PDF uploads and is marked
+unreadable rather than silently contributing nothing.
 
 ```bash
 git clone <this repo> signoff && cd signoff
-composer install && npm install && npm run build
+
+# .env and the app key must exist before the front end is built: the Vite
+# plugin generates typed routes by calling artisan.
+composer install
 cp .env.example .env && php artisan key:generate
 
-# create the database named in .env, then:
+# create the MySQL database named in .env (nothing creates it for you), then:
 php artisan migrate
 
-# fetch the skills library and import it
+npm install && npm run build
+
+# fetch the skills library and import it — with no import the catalogue is
+# empty and there is nothing to run
 git clone https://github.com/sector-skills/nonprofit-skills.git storage/app/skills-library
 php artisan skills:import
+
+# create the first account; sign-up is closed, so this is the way in
+php artisan signoff:install
+
+php artisan serve
 ```
+
+`composer setup` does everything up to the migration in one step; the library
+import and the first account are still yours to run.
+
+New to it? **[docs/using-signoff.md](docs/using-signoff.md)** walks through it from
+the other side of the screen — no terminal.
 
 No key is needed to try it. An organization with no provider set gets clearly-marked placeholder output, which is enough to exercise every gate, the approval queue and the audit record without spending anything.
 
@@ -85,7 +104,7 @@ up on a server.
 php artisan test
 ```
 
-312 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
+337 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
 
 ## Built with
 

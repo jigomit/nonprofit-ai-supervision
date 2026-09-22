@@ -97,6 +97,38 @@ class OrganizationProfile extends Model
     }
 
     /**
+     * The facts a task is written from, and which of them are missing.
+     *
+     * Every run carries this profile into the prompt. With it empty the model
+     * is told only the team's name, and it writes what it can — generic copy
+     * full of bracketed placeholders. That reads as a weak model rather than
+     * as a blank form, which is the wrong lesson to draw, so the gaps are
+     * named where the work is started.
+     *
+     * @return array<int, string>
+     */
+    public function missingContext(): array
+    {
+        return array_keys(array_filter([
+            'what the organization does' => blank($this->mission),
+            'what kind of nonprofit it is' => blank($this->entity_type),
+            'its annual budget' => $this->budget_band === null,
+            'the state it is incorporated in' => blank($this->state_of_incorporation),
+        ]));
+    }
+
+    /**
+     * Whether the model has enough to be specific.
+     *
+     * The mission carries most of the weight — without it there is nothing to
+     * write *about* — so its absence alone counts as thin.
+     */
+    public function hasThinContext(): bool
+    {
+        return blank($this->mission) || count($this->missingContext()) > 1;
+    }
+
+    /**
      * @return array<int, string>
      */
     public function enabledCollections(): array

@@ -15,6 +15,7 @@ type RunSummary = {
     statusLabel: string;
     supervision: string;
     supervisionLabel: string;
+    supervisionGate: string;
     requestedBy: string;
     releasedWithoutExpert: boolean;
     createdAt: string | null;
@@ -141,7 +142,9 @@ defineOptions({
                 >
                     <tr>
                         <th class="px-4 py-2.5 text-left font-medium">Task</th>
-                        <th class="px-4 py-2.5 text-left font-medium">Gate</th>
+                        <th class="px-4 py-2.5 text-left font-medium">
+                            Who has to clear it
+                        </th>
                         <th class="px-4 py-2.5 text-left font-medium">
                             Status
                         </th>
@@ -177,6 +180,14 @@ defineOptions({
                                 :level="run.supervision"
                                 :label="run.supervisionLabel"
                             />
+                            <!-- The reviewer lives on this screen; making them
+                                 open a run to learn what is being asked of
+                                 them is the wrong way round. -->
+                            <p
+                                class="mt-1 max-w-xs text-xs text-muted-foreground"
+                            >
+                                {{ run.supervisionGate }}
+                            </p>
                         </td>
                         <td class="px-4 py-3">
                             <TaskStatusPill

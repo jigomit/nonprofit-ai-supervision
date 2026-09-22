@@ -103,6 +103,11 @@ class TaskRunController extends Controller
                 'revisedFrom' => $taskRun->revised_from_id,
                 'failureReason' => $taskRun->failure_reason,
                 'inputs' => $taskRun->inputs,
+                // A draft is only as specific as what the model was told about
+                // the organization. Saying so on the run stops a reviewer
+                // reading thin work as the best the task can do.
+                'thinContext' => $team->organizationProfile?->hasThinContext() ?? true,
+                'isPlaceholder' => $taskRun->model === 'placeholder',
                 // What the model was actually given, including the files it
                 // was not: a reviewer who thinks the 990 was read will review
                 // the draft as though it was.
@@ -236,6 +241,10 @@ class TaskRunController extends Controller
             'statusLabel' => $run->status->label(),
             'supervision' => $run->supervision_at_run->value,
             'supervisionLabel' => $run->supervision_at_run->label(),
+            // Who has to clear it, in a sentence. "Waiting for review" and
+            // "Waiting for an expert" are two very different asks and the
+            // labels alone do not say which is which.
+            'supervisionGate' => $run->supervision_at_run->gate(),
             'requestedBy' => $run->requester->name,
             'releasedWithoutExpert' => $run->released_without_expert,
             'createdAt' => $run->created_at?->toIso8601String(),

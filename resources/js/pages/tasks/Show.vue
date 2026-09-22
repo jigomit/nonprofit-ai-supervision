@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     Check,
@@ -10,15 +10,18 @@ import {
     ShieldAlert,
     X,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
+import { Spinner } from '@/components/ui/spinner';
 import TaskStatusPill from '@/components/TaskStatusPill.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
+import { edit as aiEdit } from '@/routes/ai';
+import { edit as organizationEdit } from '@/routes/organization';
 import {
     attachment as taskAttachment,
     decision as taskDecision,
@@ -50,6 +53,8 @@ type Props = {
         revisedFrom: number | null;
         failureReason: string | null;
         inputs: Record<string, string> | null;
+        thinContext: boolean;
+        isPlaceholder: boolean;
         attachments: {
             id: number;
             name: string;
@@ -89,6 +94,40 @@ const props = defineProps<Props>();
 // Inertia reuses this component when moving between runs, so anything derived
 // from props has to be computed. Plain consts here silently kept pointing at
 // the run you came from.
+// A run in flight used to leave the page static: the draft landed in the
+// database and the person sat looking at "Queued", with nothing telling them
+// to reload. Polling stops the moment the run reaches a gate.
+const inFlight = computed(
+    () => props.run.status === 'queued' || props.run.status === 'running',
+);
+
+let poller: ReturnType<typeof setInterval> | undefined;
+
+const stopPolling = () => {
+    if (poller !== undefined) {
+        clearInterval(poller);
+        poller = undefined;
+    }
+};
+
+const startPolling = () => {
+    stopPolling();
+
+    if (!inFlight.value) {
+        return;
+    }
+
+    poller = setInterval(() => {
+        // `only` keeps this to the run itself rather than re-sending the
+        // catalogue and the team on every tick.
+        router.reload({ only: ['run'] });
+    }, 4000);
+};
+
+onMounted(startPolling);
+onUnmounted(stopPolling);
+watch(inFlight, (running) => (running ? startPolling() : stopPolling()));
+
 const awaitingReview = computed(() => props.run.status === 'awaiting_review');
 const awaitingExpert = computed(() => props.run.status === 'awaiting_expert');
 
@@ -297,6 +336,63 @@ defineOptions({
         >
             <p class="font-medium">This run did not finish</p>
             <p class="mt-1 text-muted-foreground">{{ run.failureReason }}</p>
+        </div>
+
+        <div
+            v-if="inFlight"
+            class="flex items-center gap-3 rounded-xl border border-sidebar-border/70 p-4 text-sm dark:border-sidebar-border"
+        >
+            <Spinner class="size-4 shrink-0" />
+            <p class="text-muted-foreground">
+                {{
+                    run.status === 'queued'
+                        ? 'Waiting for a free moment to start. This page updates itself.'
+                        : 'Writing the draft now. A long task can take a few minutes — this page updates itself.'
+                }}
+            </p>
+        </div>
+
+        <!-- A reviewer reading thin work needs to know whether that is the
+             best the task can do or the profile being empty. Placeholder
+             output needs saying loudest: it is not a draft at all. -->
+        <div
+            v-if="run.isPlaceholder"
+            class="flex gap-3 rounded-xl border border-amber-600/30 bg-amber-500/5 p-4 text-sm"
+        >
+            <ShieldAlert class="mt-0.5 size-4 shrink-0 text-amber-600" />
+            <div>
+                <p class="font-medium">This is not a real draft</p>
+                <p class="mt-1 text-muted-foreground">
+                    No AI service was set up when this ran, so what follows is
+                    placeholder text. Do not release it as work.
+                    <Link
+                        v-if="currentTeam"
+                        :href="aiEdit(currentTeam.slug)"
+                        class="font-medium text-foreground underline underline-offset-4"
+                        >Set up a provider</Link
+                    >
+                    and run it again.
+                </p>
+            </div>
+        </div>
+
+        <div
+            v-else-if="run.thinContext && run.output"
+            class="flex gap-3 rounded-xl border border-sidebar-border/70 p-4 text-sm dark:border-sidebar-border"
+        >
+            <ShieldAlert class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <p class="text-muted-foreground">
+                This was written without much to go on — the organization
+                profile was mostly empty, so the model had nothing specific to
+                work from. If it reads generic, that is why.
+                <Link
+                    v-if="currentTeam"
+                    :href="organizationEdit(currentTeam.slug)"
+                    class="font-medium text-foreground underline underline-offset-4"
+                    >Fill in the profile</Link
+                >
+                and try again.
+            </p>
         </div>
 
         <section v-if="run.output" class="flex flex-col gap-2">

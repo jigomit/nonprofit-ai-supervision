@@ -145,6 +145,12 @@ class DashboardController extends Controller
         return [
             'isOnboarded' => $profile !== null && $profile->onboarded_at !== null,
             'catalogueSize' => $team->enabledSkills()->count(),
+            // Without this the app works end to end and produces placeholder
+            // output that reaches the approval queue looking like a draft. It
+            // belongs in the chain, between describing the organization and
+            // running anything.
+            'hasAiProvider' => $profile !== null && $profile->hasAiConfigured(),
+            'hasThinContext' => $profile === null || $profile->hasThinContext(),
             'hasSchedules' => TaskSchedule::query()->where('team_id', $team->id)->exists(),
             'hasRun' => TaskRun::query()->where('team_id', $team->id)->exists(),
         ];

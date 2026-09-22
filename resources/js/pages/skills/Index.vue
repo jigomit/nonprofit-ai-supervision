@@ -18,10 +18,13 @@ type SkillSummary = {
     supervision: string;
     supervisionLabel: string;
     supervisionNote: string;
+    enabled: boolean;
 };
 
 type Props = {
     skills: SkillSummary[];
+    libraryIsEmpty: boolean;
+    catalogueSize: number;
     filters: {
         search: string;
         category: string;
@@ -229,7 +232,12 @@ defineOptions({
                 :href="
                     skillShow({ current_team: teamSlug, skill: skill.slug }).url
                 "
-                class="flex flex-col gap-3 rounded-xl border border-sidebar-border/70 p-4 transition-colors hover:bg-accent/50 dark:border-sidebar-border"
+                class="flex flex-col gap-3 rounded-xl border p-4 transition-colors hover:bg-accent/50"
+                :class="
+                    skill.enabled
+                        ? 'border-sidebar-border/70 dark:border-sidebar-border'
+                        : 'border-dashed border-sidebar-border/50'
+                "
             >
                 <div class="flex items-start justify-between gap-3">
                     <h2 class="text-sm font-semibold text-balance">
@@ -249,12 +257,37 @@ defineOptions({
                     <span>{{ skill.categoryLabel }}</span>
                     <span v-if="!skill.isCore" aria-hidden="true">·</span>
                     <span v-if="!skill.isCore">Special collection</span>
+                    <!-- The card is still worth reading; it just cannot be
+                         run, and finding that out only after clicking is the
+                         catalogue breaking its own promise. -->
+                    <span v-if="!skill.enabled" aria-hidden="true">·</span>
+                    <span v-if="!skill.enabled" class="font-medium"
+                        >Not in your catalogue</span
+                    >
                 </div>
             </Link>
         </div>
 
+        <!-- An empty database and an over-narrow filter look identical on
+             screen and have nothing to do with each other. -->
         <div
-            v-if="skills.length === 0"
+            v-if="libraryIsEmpty"
+            class="rounded-xl border border-dashed p-10 text-center"
+        >
+            <p class="text-sm font-medium">
+                The task library has not been imported
+            </p>
+            <p class="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
+                Signoff reads its tasks from the open-source nonprofit skills
+                library. Whoever set this up needs to clone it and run
+                <code class="rounded bg-muted px-1 py-0.5"
+                    >php artisan skills:import</code
+                >.
+            </p>
+        </div>
+
+        <div
+            v-else-if="skills.length === 0"
             class="rounded-xl border border-dashed p-10 text-center"
         >
             <p class="text-sm font-medium">No tasks match those filters</p>

@@ -9,9 +9,19 @@ is safe and whether it works at all.
 ALLOW_REGISTRATION=false
 ```
 
-Off is the default. An account here can spend the organization's API key and
-read its work, so pilot organizations are invited to a team rather than
-signing themselves up. Invitations go out from Settings → Teams.
+Off is the default, and `.env.example` ships it off. An account here can spend
+the organization's API key and read its work, so pilot organizations are
+invited to a team rather than signing themselves up.
+
+Which leaves the obvious question of how the first account exists at all:
+
+```bash
+php artisan signoff:install
+```
+
+It asks for a name, an email and a password, creates the owner and their
+organization, and refuses to run a second time. After that, invitations go out
+from Settings → Teams.
 
 ## 2. Leave the fallback empty
 
@@ -40,6 +50,17 @@ Check both after any deploy:
 php artisan queue:monitor default --max=25   # a growing queue means no worker
 php artisan schedule:list                    # what should be running, and when
 ```
+
+## Two host packages
+
+`poppler-utils` — PDFs attached to a task are read with `pdftotext`. Without it
+a PDF uploads, is stored, and is marked unreadable; the model never sees it and
+the run says so, but nobody gets the 990 they thought they had attached.
+
+`shell_exec` must not be in `disable_functions`. The importer reads the skill
+library's commit with it, and without it every imported task records a null
+`source_commit` — losing the provenance the audit record exists for. The import
+still reports success.
 
 ## Also worth setting
 

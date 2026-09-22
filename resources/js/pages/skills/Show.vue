@@ -8,6 +8,8 @@ import SupervisionBadge from '@/components/SupervisionBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
+import { edit as aiEdit } from '@/routes/ai';
+import { edit as organizationEdit } from '@/routes/organization';
 import { index as skillsIndex, show as skillShow } from '@/routes/skills';
 import { store as tasksStore } from '@/routes/tasks';
 import type { Team } from '@/types';
@@ -40,6 +42,8 @@ type Props = {
         }[];
     };
     enabled: boolean;
+    missingContext: string[];
+    hasAiProvider: boolean;
     currentTeam?: Team | null;
 };
 
@@ -61,6 +65,12 @@ const pickFiles = (event: Event) => {
 const dropFile = (index: number) => {
     run.files = run.files.filter((_, at) => at !== index);
 };
+
+// "a, b and c" — a list a person would say out loud.
+const listed = (items: string[]) =>
+    items.length <= 1
+        ? (items[0] ?? '')
+        : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 
 const readableSize = (bytes: number) =>
     bytes < 1024 * 1024
@@ -240,13 +250,70 @@ defineOptions({
                     </ul>
 
                     <InputError :message="run.errors.files" />
-                    <InputError :message="(run.errors as Record<string, string>)['files.0']" />
+                    <InputError
+                        :message="
+                            (run.errors as Record<string, string>)['files.0']
+                        "
+                    />
                 </div>
-                <div>
+                <!-- Both of these change what comes back, so they belong at
+                     the button rather than on a settings page nothing links
+                     to. Neither blocks: a wall here is what teaches someone to
+                     paste the prompt into ChatGPT instead. -->
+                <div
+                    v-if="!hasAiProvider"
+                    class="flex gap-3 rounded-lg border border-amber-600/25 bg-amber-500/5 p-3 text-sm"
+                >
+                    <TriangleAlert
+                        class="mt-0.5 size-4 shrink-0 text-amber-600"
+                    />
+                    <p class="text-muted-foreground">
+                        No AI service is set up yet, so this will come back as
+                        placeholder text rather than a real draft.
+                        <Link
+                            v-if="currentTeam"
+                            :href="aiEdit(currentTeam.slug)"
+                            class="font-medium text-foreground underline underline-offset-4"
+                            >Set one up first</Link
+                        >.
+                    </p>
+                </div>
+
+                <div
+                    v-else-if="missingContext.length"
+                    class="flex gap-3 rounded-lg border border-amber-600/25 bg-amber-500/5 p-3 text-sm"
+                >
+                    <TriangleAlert
+                        class="mt-0.5 size-4 shrink-0 text-amber-600"
+                    />
+                    <p class="text-muted-foreground">
+                        The model has not been told
+                        {{ listed(missingContext) }}, so expect a generic draft
+                        with blanks to fill in.
+                        <Link
+                            v-if="currentTeam"
+                            :href="organizationEdit(currentTeam.slug)"
+                            class="font-medium text-foreground underline underline-offset-4"
+                            >Fill in your profile</Link
+                        >
+                        and every task afterwards gets it.
+                    </p>
+                </div>
+
+                <div class="flex flex-col gap-2">
                     <Button type="submit" :disabled="run.processing">
                         <Play class="size-4" />
                         {{ run.processing ? 'Starting…' : 'Run task' }}
                     </Button>
+                    <!-- Said at the point of action. The gate panel above
+                         explains the level; this says the app will enforce it. -->
+                    <p class="text-xs text-muted-foreground">
+                        {{
+                            skill.supervision === 'unsupervised'
+                                ? 'This one is released as soon as it is written — no approval needed.'
+                                : 'The draft will be held here until it has been signed off. You will not be able to download or copy it before then.'
+                        }}
+                    </p>
                 </div>
             </form>
         </section>

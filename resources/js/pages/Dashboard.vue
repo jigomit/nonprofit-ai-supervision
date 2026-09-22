@@ -7,6 +7,7 @@ import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
 import SupervisionBadge from '@/components/SupervisionBadge.vue';
 import TaskStatusPill from '@/components/TaskStatusPill.vue';
 import { dashboard } from '@/routes';
+import { edit as aiEdit } from '@/routes/ai';
 import { edit as organizationEdit } from '@/routes/organization';
 import { index as reportIndex } from '@/routes/report';
 import { index as schedulesIndex } from '@/routes/schedules';
@@ -48,6 +49,8 @@ type Props = {
     setup: {
         isOnboarded: boolean;
         catalogueSize: number;
+        hasAiProvider: boolean;
+        hasThinContext: boolean;
         hasSchedules: boolean;
         hasRun: boolean;
     };
@@ -66,6 +69,26 @@ const nextStep = computed(() => {
             title: 'Tell us about your organization',
             body: 'Your fiscal year, your budget, and which collections apply. It decides what work appears here and how the expert gate behaves.',
             action: 'Set up the organization',
+            href: organizationEdit(slug.value).url,
+        };
+    }
+
+    // Before running anything: without a provider every draft is placeholder
+    // text that still reaches the approval queue looking like work.
+    if (!props.setup.hasAiProvider) {
+        return {
+            title: 'Choose who writes the drafts',
+            body: 'Until you point Signoff at an AI service of your own, tasks return placeholder text instead of real drafts. The gates and the record work either way — the draft does not.',
+            action: 'Set the AI provider',
+            href: aiEdit(slug.value).url,
+        };
+    }
+
+    if (props.setup.hasThinContext) {
+        return {
+            title: 'Say what your organization does',
+            body: 'Every task is written from your profile. With the mission blank the model has nothing to be specific about, and the drafts come back generic — which reads like a weak model rather than an empty form.',
+            action: 'Fill in the profile',
             href: organizationEdit(slug.value).url,
         };
     }

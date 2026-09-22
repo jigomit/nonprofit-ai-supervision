@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
+import { edit as organizationEdit } from '@/routes/organization';
 import { show as skillShow } from '@/routes/skills';
 import {
     destroy as scheduleDestroy,
@@ -279,8 +280,25 @@ defineOptions({
             </p>
         </div>
 
+        <!-- Telling someone to add recurring work and then removing the form
+             without a word is the worst of both. -->
+        <div
+            v-if="schedulableSkills.length === 0"
+            class="max-w-3xl rounded-xl border border-dashed p-6 text-sm text-muted-foreground"
+        >
+            There is nothing to schedule yet, because no tasks are in your
+            catalogue.
+            <Link
+                v-if="currentTeam"
+                :href="organizationEdit(currentTeam.slug)"
+                class="font-medium text-foreground underline underline-offset-4"
+                >Set up your organization</Link
+            >
+            and the tasks that apply to you appear here.
+        </div>
+
         <section
-            v-if="schedulableSkills.length > 0"
+            v-else
             class="flex max-w-3xl flex-col gap-4 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
         >
             <h2 class="text-sm font-semibold">Add recurring work</h2>

@@ -7,6 +7,7 @@ use App\Models\Skill;
 use App\Models\SupervisionChange;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 
@@ -167,7 +168,7 @@ class SkillLibraryImporter
 
         return [
             'slug' => $slug,
-            'name' => (string) ($meta['name'] ?? $slug),
+            'name' => $this->title($body, $slug),
             'description' => $description,
             'category' => $category,
             'is_core' => in_array($category, (array) config('skills.core_categories', []), true),
@@ -184,6 +185,31 @@ class SkillLibraryImporter
             'license' => isset($meta['license']) ? (string) $meta['license'] : null,
             'references' => $this->extractReferences($description, $slug),
         ];
+    }
+
+    /**
+     * A name a person would recognise.
+     *
+     * The library's frontmatter `name` mirrors the directory slug by
+     * convention — all 102 of them — so using it verbatim puts
+     * "nonprofit-mergers-fiscal-sponsorship" in front of a fundraiser. Each
+     * body opens with a proper H1, and that is what gets shown.
+     *
+     * Falling back to the slug through Str::headline() loses what the H1
+     * keeps: "Nonprofit Mergers & Fiscal Sponsorship" cannot be recovered
+     * from its slug, because the ampersand was never in it.
+     */
+    protected function title(string $body, string $slug): string
+    {
+        if (preg_match('/^#\s+(.+?)\s*$/m', $body, $matches) === 1) {
+            $heading = trim($matches[1]);
+
+            if ($heading !== '') {
+                return $heading;
+            }
+        }
+
+        return Str::headline($slug);
     }
 
     /**

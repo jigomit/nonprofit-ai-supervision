@@ -38,12 +38,28 @@ class SkillController extends Controller
             ->when($filters['collection'] === 'special', fn ($query) => $query->where('is_core', false))
             ->orderBy('category')
             ->orderBy('name')
-            ->get()
-            ->map(fn (Skill $skill) => $this->summarise($skill));
+            ->get();
+
+        // Which of these the organization can actually run. Listing the whole
+        // library as though every card were runnable is a promise the skill
+        // page then breaks.
+        $team = Team::query()->where('slug', $request->route('current_team'))->firstOrFail();
+        $enabled = TeamSkill::query()
+            ->where('team_id', $team->id)
+            ->where('enabled', true)
+            ->pluck('skill_id')
+            ->flip();
 
         return Inertia::render('skills/Index', [
-            'skills' => $skills,
+            'skills' => $skills->map(fn (Skill $skill) => [
+                ...$this->summarise($skill),
+                'enabled' => $enabled->has($skill->id),
+            ]),
             'filters' => $filters,
+            // Tells the empty state whether this is a filter that matched
+            // nothing or a catalogue that was never imported.
+            'libraryIsEmpty' => Skill::query()->doesntExist(),
+            'catalogueSize' => $enabled->count(),
             // An aggregate, not a list of skills, so it runs on the base query
             // builder rather than hydrating models with a phantom `total`.
             'categories' => DB::table('skills')
@@ -86,8 +102,16 @@ class SkillController extends Controller
             ->where('enabled', true)
             ->exists();
 
+        $profile = $team->organizationProfile;
+
         return Inertia::render('skills/Show', [
             'enabled' => $enabled,
+            // Named before the run, not discovered after it: an empty profile
+            // produces generic work that reads like a weak model.
+            'missingContext' => $profile !== null && $profile->hasThinContext()
+                ? $profile->missingContext()
+                : ($profile === null ? ['what the organization does', 'what kind of nonprofit it is'] : []),
+            'hasAiProvider' => $profile !== null && $profile->hasAiConfigured(),
             'skill' => [
                 ...$this->summarise($skill),
                 'body' => Str::markdown($skill->body),
