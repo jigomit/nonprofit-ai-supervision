@@ -1,8 +1,6 @@
-# Signoff
+# Nonprofit AI Supervision
 
-**Nonprofit AI supervision: the level of review a task needs is a property of the task, and the application enforces it.**
-
-_The repository is `nonprofit-ai-supervision`; the application calls itself Signoff._
+**The level of review a task needs is a property of the task, and the application enforces it.**
 
 Most nonprofits already use AI. Very few can say what it produced, who checked it, or on what basis — 53% report informal, unofficial use, and only about 4% have documented, repeatable AI workflows.[^1] The usual answer is a written policy. A policy does not stop anything.
 
@@ -47,7 +45,7 @@ want PDFs to be readable when attached — without it a PDF uploads and is marke
 unreadable rather than silently contributing nothing.
 
 ```bash
-git clone git@github.com:jigomit/nonprofit-ai-supervision.git signoff && cd signoff
+git clone git@github.com:jigomit/nonprofit-ai-supervision.git && cd nonprofit-ai-supervision
 
 # .env and the app key must exist before the front end is built: the Vite
 # plugin generates typed routes by calling artisan.
@@ -65,6 +63,7 @@ git clone https://github.com/sector-skills/nonprofit-skills.git storage/app/skil
 php artisan skills:import
 
 # create the first account; sign-up is closed, so this is the way in
+# (the application is named Signoff internally, hence the command name)
 php artisan signoff:install
 
 php artisan serve
