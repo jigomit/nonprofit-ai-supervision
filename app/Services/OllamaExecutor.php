@@ -13,40 +13,41 @@ use RuntimeException;
  *
  * This does not go through the OpenAI-compatible endpoint, for one reason that
  * matters more than the convenience of sharing a driver: that endpoint gives
- * no way to set the context window, and Ollama's default is 4,096 tokens.
+ * no way to set the context window, and Ollama's default is 4,096 tokens —
+ * under half of what the average task in this catalogue needs.
  *
- * Skill bodies in this catalogue average about 3,900 tokens and reach 9,400.
- * Over the window, Ollama does not fail — it silently drops the middle of the
- * prompt and answers from what is left. Measured on llama3 here: a 40,000
- * character skill was cut to 2,060 tokens, and the model then answered a
- * question about the instructions with a heading it had invented.
+ * Over the window Ollama does not fail. It drops the middle of the prompt and
+ * answers from what is left, reporting success. Measured here on a 40,328
+ * character skill: at num_ctx 8,192 it read 4,098 of 8,648 tokens and still
+ * answered a question about the last heading correctly, because the trimming
+ * takes the middle and leaves both ends. Nothing in the response says a word
+ * of it.
  *
- * A draft produced from half its instructions, arriving in a review queue
- * looking like ordinary work, is the exact failure this application exists to
- * prevent. So this driver sizes the window to the prompt, refuses the run when
- * the model is too small to hold it, and checks afterwards that the whole
- * prompt was actually read.
+ * A draft written from the outer edges of its instructions, arriving in a
+ * review queue looking like ordinary work, is the exact failure this
+ * application exists to prevent. So this driver sizes the window to the
+ * prompt, refuses when the model cannot hold it, and checks afterwards that
+ * what the server read matches what was sent.
  */
 class OllamaExecutor implements TaskExecutor
 {
     /**
-     * Characters per token, deliberately low. Measured around 4.3 on this
-     * corpus, so 3.5 over-estimates the prompt by roughly a fifth — the margin
-     * is on the safe side, because under-estimating means silent truncation.
+     * Characters per token. Measured between 4.28 and 4.51 across this corpus,
+     * so 4.0 over-estimates slightly — the margin belongs on this side,
+     * because under-estimating is what lets a prompt be trimmed in silence.
      */
-    protected const CHARS_PER_TOKEN = 3.5;
+    protected const CHARS_PER_TOKEN = 4.0;
 
     /** A draft shorter than this is not worth the gate it would occupy. */
     protected const MIN_OUTPUT_TOKENS = 1024;
 
     /**
-     * Ollama keeps only half the context window for the prompt and reserves
-     * the rest for generation. Measured exactly on this machine: num_ctx 2048,
-     * 4096 and 8192 read 1,036 / 2,060 / 4,108 tokens of a prompt far longer
-     * than any of them. So a prompt of P tokens needs a window of 2P, and the
-     * model's own limit has to be read as half of what it advertises.
+     * How much of the estimate must come back as actually read. A whole prompt
+     * reports 0.88 to 0.94 of the estimate above; a trimmed one reports around
+     * 0.45, because Ollama halves what will not fit. Anything under this is
+     * trimming, not estimation error.
      */
-    protected const PROMPT_SHARE = 2;
+    protected const MIN_READ_RATIO = 0.75;
 
     public function __construct(
         protected TaskPromptBuilder $prompts,
@@ -59,33 +60,29 @@ class OllamaExecutor implements TaskExecutor
         $promptTokens = $this->estimateTokens($messages);
         $window = $this->contextWindow();
 
-        // What the model can actually be given, as opposed to what it claims.
-        $promptBudget = intdiv($window, self::PROMPT_SHARE);
-
-        if ($promptTokens > $promptBudget) {
+        if ($promptTokens + self::MIN_OUTPUT_TOKENS > $window) {
             throw new RuntimeException(sprintf(
-                'This task needs about %s tokens of instructions. %s advertises a %s token '.
-                'window but keeps half of it for writing, so it can only be given %s — the rest '.
-                'would be dropped without warning. Pull a model with a larger window '.
-                '(llama3.1 and later hold far more) or run this task on a hosted provider.',
+                'This task needs about %s tokens of instructions and %s can hold %s, leaving '.
+                'no room to write. Over that line Ollama drops the middle of the instructions '.
+                'without saying so, which is not something a draft should be built on. Pull a '.
+                'model with a larger context window (llama3.1 and later hold far more) or run '.
+                'this task on a hosted provider.',
                 number_format($promptTokens),
                 $this->credentials->model,
                 number_format($window),
-                number_format($promptBudget),
             ));
         }
 
-        // Sized so the prompt sits inside its half with room to spare, rather
-        // than at the edge where Ollama would start trimming.
-        $contextWindow = min($window, max(
-            self::PROMPT_SHARE * $promptTokens,
-            $promptTokens + self::MIN_OUTPUT_TOKENS,
-        ));
-
+        // Asked for per request, rather than left at Ollama's 4,096 default.
+        // Only as large as this prompt needs: the window is allocated up
+        // front, so claiming a 128k model's full window would cost gigabytes
+        // of memory to draft one letter.
         $outputTokens = min(
             (int) config('ai.max_tokens', 16000),
-            $contextWindow - $promptTokens,
+            $window - $promptTokens,
         );
+
+        $contextWindow = $promptTokens + $outputTokens;
 
         $response = $this->request()->post($this->url('/api/chat'), [
             'model' => $this->credentials->model,
@@ -105,15 +102,15 @@ class OllamaExecutor implements TaskExecutor
 
         $read = (int) $response->json('prompt_eval_count', 0);
 
-        // Ollama reports what it actually read, and its trimming stops exactly
-        // at half the window. Reaching that line means the prompt was cut, so
-        // whatever came back was written without part of the task. Refuse it
-        // rather than let it reach a reviewer looking like ordinary work.
-        if ($read > 0 && $read >= intdiv($contextWindow, self::PROMPT_SHARE)) {
+        // Ollama reports what it actually read. Well short of what was sent is
+        // the only signal that the middle was dropped, so it is checked rather
+        // than trusted — a draft written from part of its instructions must
+        // not reach a reviewer looking like ordinary work.
+        if ($read > 0 && $read < $promptTokens * self::MIN_READ_RATIO) {
             throw new RuntimeException(sprintf(
-                'The instructions were trimmed to fit: %s tokens reached the model out of '.
-                'about %s. The draft would have been written from part of the task, so it '.
-                'has been discarded. Use a model with a larger context window.',
+                'Only %s of about %s tokens of instructions reached the model, so part of the '.
+                'task was dropped and the draft has been discarded. Use a model with a larger '.
+                'context window.',
                 number_format($read),
                 number_format($promptTokens),
             ));

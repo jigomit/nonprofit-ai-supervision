@@ -58,7 +58,11 @@ No key is needed to try it. An organization with no provider set gets clearly-ma
 
 To produce real drafts, each organization sets its own provider and key under **Organization → AI provider**. Keys are encrypted at rest and never sent back to the browser.
 
-**Running locally.** Ollama needs an address rather than a key, so an organization that does not want its work leaving its own network can run entirely on its own hardware. One caveat worth knowing before you rely on it: over its context window Ollama does not fail, it trims the prompt and answers from what is left. Skill bodies here average about 3,900 tokens and reach 9,400, and Ollama keeps only half a model's window for the prompt — so an 8K model can be given roughly 4,000 tokens, which covers about 60 of the 102 tasks. This application refuses the rest by name rather than drafting them from partial instructions. A model with a larger context window handles the whole catalogue.
+**Running locally.** Ollama needs an address rather than a key, so an organization that does not want its work leaving its own network can run entirely on its own hardware.
+
+One thing to know before relying on it: over its context window Ollama does not fail. It drops the middle of the prompt and answers from what is left, reporting success — and because the trimming takes the middle, both ends of the instructions survive, so the output reads as though nothing happened. Skill bodies here average about 3,900 tokens and reach 9,400, against Ollama's 4,096 token default. This application sizes the window to each prompt, refuses a task by name when the model cannot hold it, and discards any draft the server did not read in full.
+
+A model with an 8K window (llama3) covers 82 of the 102 tasks. One with a large window (llama3.1 and later) covers all of them.
 
 The `AI_FALLBACK_*` values in `.env` are a development convenience for organizations that have not configured a provider. Leave them empty in production.
 
@@ -74,7 +78,7 @@ php artisan queue:work
 php artisan test
 ```
 
-294 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
+295 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
 
 ## Built with
 
