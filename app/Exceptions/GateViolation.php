@@ -5,7 +5,7 @@ namespace App\Exceptions;
 use DomainException;
 
 /**
- * Thrown when something tries to release work the gate does not permit.
+ * Thrown when the rules do not permit work to start, or to be released.
  *
  * This is deliberately an exception rather than a validation failure. A caller
  * that reaches one of these has bypassed the interface, and the gate is the one
@@ -46,5 +46,15 @@ class GateViolation extends DomainException
     public static function ambiguousApprover(): self
     {
         return new self('An approval is either by a member or by an invited expert, not both.');
+    }
+
+    public static function dailyRunLimitReached(int $limit): self
+    {
+        return new self(sprintf(
+            'This organization has started its %d runs for today. The limit is there so a '.
+            'mistake cannot empty your account overnight; it lifts at midnight, and an '.
+            'administrator can raise it.',
+            $limit,
+        ));
     }
 }

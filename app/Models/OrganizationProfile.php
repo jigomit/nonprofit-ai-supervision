@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $ai_model
  * @property string|null $ai_api_key
  * @property string|null $ai_base_url
+ * @property int|null $daily_run_limit
  * @property array<int, string>|null $collections
  * @property Carbon|null $onboarded_at
  * @property-read Team $team
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'team_id', 'entity_type', 'ein', 'state_of_incorporation', 'fiscal_year_end_month',
     'budget_band', 'mission', 'expert_gate_policy', 'collections', 'onboarded_at',
-    'ai_provider', 'ai_model', 'ai_api_key', 'ai_base_url',
+    'ai_provider', 'ai_model', 'ai_api_key', 'ai_base_url', 'daily_run_limit',
 ])]
 class OrganizationProfile extends Model
 {
@@ -115,6 +116,7 @@ class OrganizationProfile extends Model
             'expert_gate_policy' => ExpertGatePolicy::class,
             'collections' => 'array',
             'fiscal_year_end_month' => 'integer',
+            'daily_run_limit' => 'integer',
             'onboarded_at' => 'datetime',
         ];
     }

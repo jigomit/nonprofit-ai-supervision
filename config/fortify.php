@@ -161,6 +161,12 @@ return [
     */
 
     'features' => [
+        /*
+         * Left registered even when sign-up is closed, so that the route table
+         * — and therefore the generated frontend — is the same in every
+         * environment. Whether the door opens is decided by
+         * config('signoff.registration'), enforced in EnsureRegistrationIsOpen.
+         */
         Features::registration(),
         Features::resetPasswords(),
         Features::emailVerification(),

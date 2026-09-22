@@ -64,6 +64,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/Login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
+            'canRegister' => (bool) config('signoff.registration'),
             'status' => $request->session()->get('status'),
             'teamInvitation' => $this->teamInvitation($request),
         ]));

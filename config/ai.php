@@ -65,6 +65,22 @@ return [
         'base_url' => env('AI_FALLBACK_BASE_URL'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Daily run limit
+    |--------------------------------------------------------------------------
+    |
+    | The most runs one organization may start in a day, counting the work list
+    | and the calendar together. Each organization spends its own key, so this
+    | is not about the host's bill — it is about a loop, a mistake or a stolen
+    | account not being able to empty someone's account overnight. An
+    | organization can be given its own number on its profile; 0 removes the
+    | cap entirely.
+    |
+    */
+
+    'daily_run_limit' => (int) env('AI_DAILY_RUN_LIMIT', 50),
+
     'max_tokens' => (int) env('AI_MAX_TOKENS', 16000),
 
     'timeout' => (int) env('AI_TIMEOUT', 180),

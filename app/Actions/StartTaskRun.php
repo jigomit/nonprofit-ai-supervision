@@ -6,6 +6,7 @@ use App\Enums\ExpertGatePolicy;
 use App\Enums\TaskRunStatus;
 use App\Exceptions\GateViolation;
 use App\Jobs\RunTaskJob;
+use App\Models\OrganizationProfile;
 use App\Models\Skill;
 use App\Models\TaskRun;
 use App\Models\TaskSchedule;
@@ -27,7 +28,9 @@ class StartTaskRun
     /**
      * @param  array<string, mixed>  $inputs
      *
-     * @throws GateViolation when the task is not in the organization's catalogue
+     * @throws GateViolation when the task is not in the organization's
+     *                       catalogue, or the organization has run its
+     *                       allowance for the day
      */
     public function handle(
         Team $team,
@@ -39,6 +42,10 @@ class StartTaskRun
     ): TaskRun {
         $pivot = $this->catalogueEntry($team, $skill);
         $profile = $team->organizationProfile;
+
+        // Counted before the row is written, so a refused run leaves nothing
+        // behind. A revision counts too: it is another call on the key.
+        $this->guardDailyLimit($team, $profile);
 
         $run = TaskRun::create([
             'team_id' => $team->id,
@@ -66,6 +73,31 @@ class StartTaskRun
         RunTaskJob::dispatch($run);
 
         return $run;
+    }
+
+    /**
+     * @throws GateViolation
+     */
+    protected function guardDailyLimit(Team $team, ?OrganizationProfile $profile): void
+    {
+        // An organization with a number of its own overrides the default,
+        // including when that number is deliberately lower.
+        $limit = $profile !== null && $profile->daily_run_limit !== null
+            ? $profile->daily_run_limit
+            : (int) config('ai.daily_run_limit', 0);
+
+        if ($limit <= 0) {
+            return;
+        }
+
+        $started = TaskRun::query()
+            ->where('team_id', $team->id)
+            ->where('created_at', '>=', now()->startOfDay())
+            ->count();
+
+        if ($started >= $limit) {
+            throw GateViolation::dailyRunLimitReached($limit);
+        }
     }
 
     protected function catalogueEntry(Team $team, Skill $skill): TeamSkill

@@ -33,7 +33,7 @@ This application does not copy that library. It reads a checkout of it at instal
 
 ## Status
 
-**Early. Built as a pilot, not a product.** It has no billing, no self-serve onboarding, and has not yet been run by a real organization. Registration is open by default — turn it off before deploying anywhere reachable. Each organization supplies its own API key, so an open registration does not spend yours; the development fallback in `.env` does, and should be left empty in production.
+**Early. Built as a pilot, not a product.** It has no billing, no self-serve onboarding, and has not yet been run by a real organization. Sign-up is closed by default and each organization supplies its own API key, so a reachable host does not hand out accounts or spend anyone's money — see [deploy/](deploy/) for the three settings that matter and the two processes it does not work without.
 
 Published for the discussion around it more than for installation.
 
@@ -66,11 +66,17 @@ A model with an 8K window (llama3) covers 82 of the 102 tasks. One with a large 
 
 The `AI_FALLBACK_*` values in `.env` are a development convenience for organizations that have not configured a provider. Leave them empty in production.
 
-Runs and emails are queued, so a worker has to be running:
+Runs and emails are queued, so a worker has to be running — and the calendar
+only speaks if the scheduler is:
 
 ```bash
 php artisan queue:work
+php artisan schedule:work
 ```
+
+Neither failure is visible from the interface: with no worker every run sits
+at "queued" and the app merely looks slow. `deploy/supervisor.conf` keeps both
+up on a server.
 
 ## Tests
 
@@ -78,7 +84,7 @@ php artisan queue:work
 php artisan test
 ```
 
-295 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
+306 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
 
 ## Built with
 

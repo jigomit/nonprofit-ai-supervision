@@ -25,6 +25,7 @@ defineOptions({
 defineProps<{
     status?: string;
     canResetPassword: boolean;
+    canRegister: boolean;
     teamInvitation?: TeamInvitationContext | null;
 }>();
 </script>
@@ -111,7 +112,10 @@ defineProps<{
             </Button>
         </div>
 
-        <div class="text-center text-sm text-muted-foreground">
+        <div
+            v-if="canRegister"
+            class="text-center text-sm text-muted-foreground"
+        >
             Don't have an account?
             <TextLink
                 :href="
