@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiSettingsController;
 use App\Http\Controllers\BoardReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpertInvitationController;
@@ -21,6 +22,10 @@ Route::prefix('{current_team}')
 
         Route::get('organization', [OrganizationProfileController::class, 'edit'])->name('organization.edit');
         Route::put('organization', [OrganizationProfileController::class, 'update'])->name('organization.update');
+
+        Route::get('organization/ai', [AiSettingsController::class, 'edit'])->name('ai.edit');
+        Route::put('organization/ai', [AiSettingsController::class, 'update'])->name('ai.update');
+        Route::delete('organization/ai', [AiSettingsController::class, 'destroy'])->name('ai.destroy');
 
         Route::get('skills', [SkillController::class, 'index'])->name('skills.index');
         Route::get('skills/{skill}', [SkillController::class, 'show'])->name('skills.show');

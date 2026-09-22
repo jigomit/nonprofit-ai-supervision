@@ -2,9 +2,8 @@
 
 namespace App\Providers;
 
-use App\Services\ClaudeTaskExecutor;
-use App\Services\PlaceholderTaskExecutor;
 use App\Services\TaskExecutor;
+use App\Services\TaskExecutorFactory;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -18,16 +17,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Without an API key the app still runs end to end on placeholder
-        // output, so the gates and the audit record can be demonstrated
-        // without spending anything.
-        $this->app->bind(TaskExecutor::class, function () {
-            $configured = config('claude.enabled') && filled(config('claude.api_key'));
-
-            return $this->app->make(
-                $configured ? ClaudeTaskExecutor::class : PlaceholderTaskExecutor::class
-            );
-        });
+        // Which model produces a draft is a per-organization decision, so it
+        // can only be made once the run is known. The factory falls back to
+        // placeholder output, which keeps the gates and the audit record
+        // demonstrable without anyone's key being spent.
+        $this->app->bind(TaskExecutor::class, TaskExecutorFactory::class);
     }
 
     /**

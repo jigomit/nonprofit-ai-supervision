@@ -20,7 +20,7 @@ class PlaceholderTaskExecutor implements TaskExecutor
     public function execute(TaskRun $run): ExecutionResult
     {
         $output = implode("\n\n", [
-            '> **No model is configured.** This is placeholder output so the review and approval steps can be exercised. Set `ANTHROPIC_API_KEY` to produce real drafts.',
+            '> **No AI provider is configured.** This is placeholder output, so the review and approval steps can still be exercised. Choose a provider under Organization → AI provider to produce real drafts.',
             '## '.$run->skill->name,
             $run->skill->description,
             '---',

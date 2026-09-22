@@ -7,6 +7,7 @@ import {
     LayoutGrid,
     ListChecks,
     Inbox,
+    Cpu,
     CalendarClock,
     FileCheck2,
 } from '@lucide/vue';
@@ -26,6 +27,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { edit as aiEdit } from '@/routes/ai';
 import { edit as organizationEdit } from '@/routes/organization';
 import { index as skillsIndex } from '@/routes/skills';
 import { index as reportIndex } from '@/routes/report';
@@ -78,6 +80,11 @@ const mainNavItems = computed<NavItem[]>(() => {
                 title: 'Organization',
                 href: organizationEdit(teamSlug.value).url,
                 icon: Building2,
+            },
+            {
+                title: 'AI provider',
+                href: aiEdit(teamSlug.value).url,
+                icon: Cpu,
             },
         );
     }

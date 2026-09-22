@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AiProvider;
 use App\Enums\BudgetBand;
 use App\Enums\ExpertGatePolicy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -22,6 +23,10 @@ use Illuminate\Support\Carbon;
  * @property BudgetBand|null $budget_band
  * @property string|null $mission
  * @property ExpertGatePolicy $expert_gate_policy
+ * @property AiProvider|null $ai_provider
+ * @property string|null $ai_model
+ * @property string|null $ai_api_key
+ * @property string|null $ai_base_url
  * @property array<int, string>|null $collections
  * @property Carbon|null $onboarded_at
  * @property-read Team $team
@@ -29,6 +34,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'team_id', 'entity_type', 'ein', 'state_of_incorporation', 'fiscal_year_end_month',
     'budget_band', 'mission', 'expert_gate_policy', 'collections', 'onboarded_at',
+    'ai_provider', 'ai_model', 'ai_api_key', 'ai_base_url',
 ])]
 class OrganizationProfile extends Model
 {
@@ -55,6 +61,41 @@ class OrganizationProfile extends Model
     }
 
     /**
+     * Whether this organization can actually produce a draft.
+     *
+     * Ollama needs an address rather than a key, because it usually runs on
+     * the organization's own machine.
+     */
+    public function hasAiConfigured(): bool
+    {
+        $provider = $this->ai_provider;
+
+        if ($provider === null) {
+            return false;
+        }
+
+        if ($provider->needsApiKey() && blank($this->ai_api_key)) {
+            return false;
+        }
+
+        return ! ($provider->needsBaseUrl() && blank($this->resolvedBaseUrl()));
+    }
+
+    public function resolvedModel(): ?string
+    {
+        return filled($this->ai_model)
+            ? $this->ai_model
+            : $this->ai_provider?->defaultModel();
+    }
+
+    public function resolvedBaseUrl(): ?string
+    {
+        return filled($this->ai_base_url)
+            ? $this->ai_base_url
+            : $this->ai_provider?->defaultBaseUrl();
+    }
+
+    /**
      * @return array<int, string>
      */
     public function enabledCollections(): array
@@ -69,6 +110,8 @@ class OrganizationProfile extends Model
     {
         return [
             'budget_band' => BudgetBand::class,
+            'ai_provider' => AiProvider::class,
+            'ai_api_key' => 'encrypted',
             'expert_gate_policy' => ExpertGatePolicy::class,
             'collections' => 'array',
             'fiscal_year_end_month' => 'integer',

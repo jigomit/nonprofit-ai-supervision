@@ -11,26 +11,32 @@ use Anthropic\Messages\TextBlockParam;
 use App\Models\TaskRun;
 use RuntimeException;
 
-class ClaudeTaskExecutor implements TaskExecutor
+/**
+ * Anthropic keeps a driver of its own rather than going through the
+ * OpenAI-compatible path, because its native API supports prompt caching —
+ * which is what stops a task that runs monthly paying for its instructions
+ * every time.
+ */
+class AnthropicExecutor implements TaskExecutor
 {
     public function __construct(
         protected TaskPromptBuilder $prompts,
+        protected AiCredentials $credentials,
     ) {}
 
     public function execute(TaskRun $run): ExecutionResult
     {
-        $apiKey = (string) config('claude.api_key');
+        $apiKey = $this->credentials->apiKey;
 
-        if ($apiKey === '') {
+        if (! is_string($apiKey) || $apiKey === '') {
             throw new RuntimeException('No Anthropic API key is configured.');
         }
 
         $client = new Client(apiKey: $apiKey);
-        $model = (string) config('claude.model');
 
         $message = $client->messages->create(
-            model: $model,
-            maxTokens: (int) config('claude.max_tokens', 16000),
+            model: $this->credentials->model,
+            maxTokens: (int) config('ai.max_tokens', 16000),
             system: $this->systemBlocks($run),
             messages: $this->messageParams($run),
         );

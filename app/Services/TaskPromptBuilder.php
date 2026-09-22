@@ -34,7 +34,7 @@ class TaskPromptBuilder
                 'text' => $run->skill->body,
                 'cacheControl' => [
                     'type' => 'ephemeral',
-                    'ttl' => (string) config('claude.cache_ttl', '1h'),
+                    'ttl' => (string) config('ai.cache_ttl', '1h'),
                 ],
             ],
         ];

@@ -29,10 +29,11 @@ This application does not copy that library. It reads a checkout of it at instal
 - **Outside professionals need no account.** The organization invites the accountant or attorney it already works with, by single-use expiring link. There is no marketplace and no credential verification — the professional relationship exists outside this software.
 - **Overrides are recorded, not hidden.** Where policy allows it, an owner can release expert-required work without a sign-off — but only with a written reason, and the release stays flagged on the run, the work list, and the board report.
 - **Upstream changes surface.** When the library revises a level, every organization running that task is told rather than having its gate silently moved.
+- **Each organization brings its own model.** Anthropic, OpenAI, xAI, Mistral, Meta's Llama, or Ollama on your own machine — configured per organization, with your own key. The supervision tier is a property of the task, not of the model that drafted it, so it does not change with the provider.
 
 ## Status
 
-**Early. Built as a pilot, not a product.** It has no billing, no self-serve onboarding, and has not yet been run by a real organization. Registration is open by default — turn it off before deploying anywhere reachable, and put a per-organization cap on runs before adding an API key, or anyone who signs up can spend it.
+**Early. Built as a pilot, not a product.** It has no billing, no self-serve onboarding, and has not yet been run by a real organization. Registration is open by default — turn it off before deploying anywhere reachable. Each organization supplies its own API key, so an open registration does not spend yours; the development fallback in `.env` does, and should be left empty in production.
 
 Published for the discussion around it more than for installation.
 
@@ -53,7 +54,11 @@ git clone https://github.com/sector-skills/nonprofit-skills.git storage/app/skil
 php artisan skills:import
 ```
 
-`ANTHROPIC_API_KEY` is optional. Without it the app produces clearly-marked placeholder output, which is enough to exercise every gate, the approval queue and the audit record without spending anything.
+No key is needed to try it. An organization with no provider set gets clearly-marked placeholder output, which is enough to exercise every gate, the approval queue and the audit record without spending anything.
+
+To produce real drafts, each organization sets its own provider and key under **Organization → AI provider**. Keys are encrypted at rest and never sent back to the browser. Ollama needs an address rather than a key, so an organization that does not want its work leaving its own network can run entirely locally.
+
+The `AI_FALLBACK_*` values in `.env` are a development convenience for organizations that have not configured a provider. Leave them empty in production.
 
 Runs and emails are queued, so a worker has to be running:
 
@@ -67,11 +72,11 @@ php artisan queue:work
 php artisan test
 ```
 
-253 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
+286 tests. The ones worth reading are `tests/Feature/Tasks/TaskGateTest.php`, which assert the gate cannot be bypassed, and `tests/Browser/GateTest.php`, which assert the interface does not quietly offer a way around it either.
 
 ## Built with
 
-Laravel 13, Inertia 3, Vue 3, Tailwind 4, Pest 4. Model access through the official Anthropic PHP SDK; skill instructions are sent as a cached system block, so repeated runs of the same task reuse them.
+Laravel 13, Inertia 3, Vue 3, Tailwind 4, Pest 4. Anthropic goes through the official PHP SDK, so skill instructions can be sent as a cached system block and repeated runs of the same task reuse them; every other provider speaks OpenAI's chat-completions shape and shares one driver, which makes adding another an entry in `config/ai.php`.
 
 ## Licence
 
